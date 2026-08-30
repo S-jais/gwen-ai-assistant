@@ -1,0 +1,23 @@
+# Virtual environment
+.venv/
+venv/
+ENV/
+
+# Node modules & build artifacts
+node_modules/
+.next/
+out/
+build/
+dist/
+
+# System / IDE
+.DS_Store
+*.log
+.vscode/
+.idea/
+
+# Storage & Secrets
+backend/storage/
+*.db
+.env
+.env.local

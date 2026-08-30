@@ -1,0 +1,2288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Siddhartha Jaiswal — Creative Developer & AI Engineer</title>
+<meta name="description" content="Siddhartha Jaiswal — Creative Developer building AI systems, interactive 3D web experiences, and real-time generative interfaces." />
+
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<!-- GSAP & ScrollTrigger -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+
+<style>
+/* ==========================================================================
+   DESIGN TOKENS — Cyber Arachnid Duo-Tone (Neon Blue & Hyper Red)
+   ========================================================================== */
+:root {
+  --bg-primary: #030407;
+  --bg-secondary: #07090e;
+  --bg-elevated: #0d1017;
+  --bg-card: rgba(13, 16, 23, 0.7);
+  --bg-card-hover: rgba(20, 24, 35, 0.85);
+
+  --text-primary: #f8fafc;
+  --text-muted: #94a3b8;
+  --text-faint: #475569;
+
+  /* Blue & Red Duo-Tone Accents */
+  --blue-primary: #00d2ff;
+  --blue-glow: rgba(0, 210, 255, 0.45);
+  --blue-soft: rgba(0, 210, 255, 0.12);
+  --blue-deep: #0066cc;
+
+  --red-primary: #ff2a5f;
+  --red-glow: rgba(255, 42, 95, 0.45);
+  --red-soft: rgba(255, 42, 95, 0.12);
+  --red-deep: #cc0033;
+
+  --purple-bridge: #a855f7;
+
+  --border-soft: rgba(255, 255, 255, 0.08);
+  --border-blue: rgba(0, 210, 255, 0.25);
+  --border-red: rgba(255, 42, 95, 0.25);
+  --border-softer: rgba(255, 255, 255, 0.04);
+
+  --font-display: 'Outfit', 'Space Grotesk', sans-serif;
+  --font-heading: 'Space Grotesk', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --ease-elastic: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  --ease-smooth: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --nav-h: 84px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  background: var(--bg-primary);
+}
+
+body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-weight: 300;
+  overflow-x: hidden;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: rgba(255, 42, 95, 0.3);
+  color: #fff;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+ul {
+  list-style: none;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+button {
+  font-family: inherit;
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 7px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(to bottom, var(--blue-primary), var(--red-primary));
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ==========================================================================
+   CANVAS & BACKGROUND OVERLAYS (SPIDER-WEB NETWORK)
+   ========================================================================== */
+#web-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.ambient-glow {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 18% 25%, rgba(0, 210, 255, 0.07) 0%, transparent 45%),
+    radial-gradient(circle at 82% 65%, rgba(255, 42, 95, 0.07) 0%, transparent 45%),
+    radial-gradient(circle at 50% 50%, rgba(168, 85, 247, 0.03) 0%, transparent 60%);
+}
+
+.grain {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.028;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.vignette {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 45%, transparent 0%, rgba(3, 4, 7, 0.4) 50%, rgba(3, 4, 7, 0.88) 100%);
+}
+
+/* ==========================================================================
+   CUSTOM DUAL CHROMATIC CURSOR (Desktop)
+   ========================================================================== */
+.cursor-dot, .cursor-ring, .cursor-aura {
+  position: fixed;
+  top: 0; left: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9999;
+  transform: translate(-50%, -50%);
+  will-change: transform;
+}
+
+.cursor-dot {
+  width: 6px;
+  height: 6px;
+  background: #fff;
+  box-shadow: 0 0 10px 2px var(--blue-primary), 0 0 20px 4px var(--red-primary);
+  transition: opacity 0.2s var(--ease-smooth);
+}
+
+.cursor-ring {
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: inset 0 0 8px rgba(0, 210, 255, 0.15), 0 0 12px rgba(255, 42, 95, 0.15);
+  transition: width 0.35s var(--ease-smooth), height 0.35s var(--ease-smooth), border-color 0.35s var(--ease-smooth), background 0.35s var(--ease-smooth);
+}
+
+.cursor-ring::after {
+  content: attr(data-label);
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: #fff;
+  opacity: 0;
+  text-shadow: 0 0 8px var(--blue-primary);
+  transition: opacity 0.2s var(--ease-smooth);
+}
+
+body.cursor-active .cursor-ring {
+  width: 72px;
+  height: 72px;
+  border-color: var(--blue-primary);
+  background: radial-gradient(circle, rgba(0, 210, 255, 0.12) 0%, rgba(255, 42, 95, 0.08) 100%);
+  box-shadow: 0 0 24px var(--blue-glow), inset 0 0 16px var(--red-glow);
+}
+
+body.cursor-active .cursor-ring::after {
+  opacity: 1;
+}
+
+body:not(.has-fine-pointer) .cursor-dot,
+body:not(.has-fine-pointer) .cursor-ring {
+  display: none;
+}
+
+/* ==========================================================================
+   NAVIGATION
+   ========================================================================== */
+.navbar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  height: var(--nav-h);
+  display: flex;
+  align-items: center;
+  padding: 0 clamp(20px, 5vw, 64px);
+  backdrop-filter: blur(0px);
+  background: rgba(3, 4, 7, 0);
+  border-bottom: 1px solid transparent;
+  transition: background 0.5s var(--ease-smooth), backdrop-filter 0.5s var(--ease-smooth), border-color 0.5s var(--ease-smooth);
+}
+
+.navbar.scrolled {
+  background: rgba(3, 4, 7, 0.78);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border-soft);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.nav-inner {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.nav-logo {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nav-logo-icon {
+  width: 24px;
+  height: 24px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nav-logo-icon svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 0 6px var(--blue-primary));
+}
+
+.nav-logo span.dot-blue { color: var(--blue-primary); }
+.nav-logo span.dot-red { color: var(--red-primary); }
+
+.nav-links {
+  display: flex;
+  gap: clamp(16px, 3vw, 40px);
+  align-items: center;
+}
+
+.nav-links a {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  position: relative;
+  padding: 6px 0;
+  transition: color 0.3s var(--ease-smooth);
+}
+
+.nav-links a::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0;
+  width: 0; height: 2px;
+  background: linear-gradient(90deg, var(--blue-primary), var(--red-primary));
+  transition: width 0.35s var(--ease-smooth);
+}
+
+.nav-links a:hover,
+.nav-links a.active {
+  color: var(--text-primary);
+}
+
+.nav-links a:hover::after,
+.nav-links a.active::after {
+  width: 100%;
+}
+
+.sound-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 100px;
+  border: 1px solid var(--border-soft);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  transition: all 0.3s var(--ease-smooth);
+}
+
+.sound-toggle-btn:hover,
+.sound-toggle-btn.active {
+  border-color: var(--blue-primary);
+  color: var(--blue-primary);
+  background: var(--blue-soft);
+  box-shadow: 0 0 12px var(--blue-glow);
+}
+
+.nav-toggle {
+  display: none;
+  width: 32px;
+  height: 32px;
+  position: relative;
+  z-index: 200;
+}
+
+.nav-toggle span {
+  position: absolute;
+  left: 6px; right: 6px;
+  height: 2px;
+  background: var(--text-primary);
+  transition: transform 0.35s var(--ease-smooth), opacity 0.35s var(--ease-smooth), top 0.35s var(--ease-smooth);
+}
+
+.nav-toggle span:nth-child(1) { top: 11px; }
+.nav-toggle span:nth-child(2) { top: 18px; }
+.nav-toggle span:nth-child(3) { top: 25px; }
+
+body.nav-open .nav-toggle span:nth-child(1) { top: 18px; transform: rotate(45deg); background: var(--blue-primary); }
+body.nav-open .nav-toggle span:nth-child(2) { opacity: 0; }
+body.nav-open .nav-toggle span:nth-child(3) { top: 18px; transform: rotate(-45deg); background: var(--red-primary); }
+
+/* ==========================================================================
+   MAIN LAYOUT & TYPOGRAPHY
+   ========================================================================== */
+main {
+  position: relative;
+  z-index: 2;
+}
+
+section {
+  position: relative;
+  padding: 160px clamp(20px, 5vw, 64px);
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--blue-primary);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.eyebrow::before {
+  content: '';
+  width: 28px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--blue-primary), var(--red-primary));
+  border-radius: 2px;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.gradient-text-duo {
+  background: linear-gradient(135deg, #ffffff 0%, var(--blue-primary) 50%, var(--red-primary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: inline-block;
+}
+
+.blue-text {
+  color: var(--blue-primary);
+  text-shadow: 0 0 16px var(--blue-glow);
+}
+
+.red-text {
+  color: var(--red-primary);
+  text-shadow: 0 0 16px var(--red-glow);
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+}
+
+/* ==========================================================================
+   HERO SECTION
+   ========================================================================== */
+.hero {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-top: var(--nav-h);
+  padding-bottom: 80px;
+}
+
+.hero-badge-wrap {
+  display: inline-flex;
+  margin-bottom: 24px;
+}
+
+.hero-kicker {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 16px;
+  background: rgba(13, 16, 23, 0.6);
+  border: 1px solid var(--border-soft);
+  border-radius: 100px;
+  backdrop-filter: blur(8px);
+}
+
+.hero-kicker .pulse-dot-container {
+  position: relative;
+  width: 8px; height: 8px;
+}
+
+.hero-kicker .dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--blue-primary);
+  box-shadow: 0 0 10px var(--blue-primary);
+}
+
+.hero-kicker .dot-ring {
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 1px solid var(--red-primary);
+  animation: pulse-ring 2s ease-out infinite;
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(0.6); opacity: 1; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+.hero-name {
+  font-family: var(--font-display);
+  font-size: clamp(46px, 9vw, 128px);
+  font-weight: 800;
+  line-height: 0.94;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+}
+
+.hero-name .first {
+  display: block;
+  color: #fff;
+  text-shadow: 0 0 30px rgba(255, 255, 255, 0.15);
+}
+
+.hero-name .second {
+  display: block;
+  background: linear-gradient(90deg, var(--blue-primary) 0%, #a855f7 50%, var(--red-primary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 25px rgba(0, 210, 255, 0.3));
+}
+
+.hero-role {
+  font-family: var(--font-heading);
+  font-size: clamp(18px, 2.4vw, 26px);
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-top: 24px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.hero-role .sep {
+  color: var(--red-primary);
+  margin: 0 4px;
+}
+
+.hero-role .tag-blue {
+  color: var(--blue-primary);
+}
+
+.hero-role .tag-red {
+  color: var(--red-primary);
+}
+
+.hero-role .stack-item {
+  color: var(--text-muted);
+}
+
+.hero-line {
+  max-width: 620px;
+  margin-top: 28px;
+  font-size: clamp(16px, 1.6vw, 19px);
+  font-weight: 300;
+  color: var(--text-muted);
+  line-height: 1.7;
+}
+
+.hero-cta-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-top: 52px;
+  flex-wrap: wrap;
+}
+
+/* ==========================================================================
+   BUTTONS (MAGNETIC & DUO-TONE GLOW)
+   ========================================================================== */
+.btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 32px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-radius: 100px;
+  overflow: hidden;
+  transition: transform 0.4s var(--ease-smooth), background 0.35s var(--ease-smooth), border-color 0.35s var(--ease-smooth), box-shadow 0.35s var(--ease-smooth);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--blue-primary) 0%, var(--red-primary) 100%);
+  color: #fff;
+  border: none;
+  box-shadow: 0 0 20px rgba(0, 210, 255, 0.3), 0 0 30px rgba(255, 42, 95, 0.2);
+}
+
+.btn-primary:hover {
+  box-shadow: 0 0 30px rgba(0, 210, 255, 0.6), 0 0 45px rgba(255, 42, 95, 0.4);
+  transform: translateY(-2px);
+}
+
+.btn-ghost {
+  background: rgba(13, 16, 23, 0.7);
+  border: 1px solid var(--border-soft);
+  color: var(--text-primary);
+  backdrop-filter: blur(10px);
+}
+
+.btn-ghost:hover {
+  border-color: var(--blue-primary);
+  color: var(--blue-primary);
+  box-shadow: 0 0 20px var(--blue-soft);
+}
+
+.hero-scroll-cue {
+  position: absolute;
+  bottom: 36px;
+  left: clamp(20px, 5vw, 64px);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.hero-scroll-cue .spider-thread {
+  width: 1px;
+  height: 38px;
+  background: linear-gradient(to bottom, var(--blue-primary), var(--red-primary), transparent);
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-scroll-cue .spider-thread::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 12px;
+  background: #fff;
+  box-shadow: 0 0 8px #fff;
+  animation: spider-drop 2.2s ease-in-out infinite;
+}
+
+@keyframes spider-drop {
+  0% { transform: translateY(-100%); opacity: 0; }
+  30% { opacity: 1; }
+  100% { transform: translateY(38px); opacity: 0; }
+}
+
+/* ==========================================================================
+   ABOUT SECTION
+   ========================================================================== */
+.about-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 80px;
+  align-items: start;
+}
+
+.about-lead {
+  font-family: var(--font-heading);
+  font-size: clamp(24px, 2.8vw, 36px);
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--text-primary);
+}
+
+.about-body p {
+  color: var(--text-muted);
+  font-size: 15.5px;
+  margin-bottom: 20px;
+  font-weight: 300;
+  line-height: 1.75;
+}
+
+.about-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  margin-top: 44px;
+  padding-top: 36px;
+  border-top: 1px solid var(--border-soft);
+}
+
+.stat-card {
+  padding: 16px 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-soft);
+  border-radius: 12px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.35s var(--ease-smooth);
+}
+
+.stat-card:hover {
+  border-color: var(--blue-primary);
+  transform: translateY(-4px);
+  box-shadow: 0 10px 25px rgba(0, 210, 255, 0.1);
+}
+
+.stat-card:nth-child(2):hover {
+  border-color: var(--red-primary);
+  box-shadow: 0 10px 25px rgba(255, 42, 95, 0.1);
+}
+
+.stat-card .stat-num {
+  font-family: var(--font-display);
+  font-size: clamp(28px, 2.8vw, 40px);
+  font-weight: 700;
+  color: #fff;
+}
+
+.stat-card:nth-child(1) .stat-num span { color: var(--blue-primary); }
+.stat-card:nth-child(2) .stat-num span { color: var(--red-primary); }
+.stat-card:nth-child(3) .stat-num span { color: #a855f7; }
+
+.stat-card .stat-label {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-top: 4px;
+}
+
+/* ==========================================================================
+   SKILLS / ARACHNO-NETWORK
+   ========================================================================== */
+.skills-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 24px;
+  margin-bottom: 56px;
+  flex-wrap: wrap;
+}
+
+.skills-head h2 {
+  font-size: clamp(32px, 4vw, 52px);
+}
+
+.skills-head p {
+  max-width: 440px;
+  color: var(--text-muted);
+  font-size: 14.5px;
+  line-height: 1.7;
+}
+
+.skill-network-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16/9;
+  max-height: 640px;
+  background: radial-gradient(ellipse at 50% 50%, rgba(13, 16, 23, 0.8) 0%, rgba(7, 9, 14, 0.95) 100%);
+  border: 1px solid var(--border-soft);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+}
+
+#skill-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.skill-node-label {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-mono);
+  font-size: clamp(11px, 1.3vw, 13.5px);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  padding: 8px 18px;
+  border: 1px solid var(--border-soft);
+  border-radius: 100px;
+  background: rgba(7, 9, 14, 0.75);
+  backdrop-filter: blur(10px);
+  white-space: nowrap;
+  transition: all 0.3s var(--ease-smooth);
+  cursor: pointer;
+  user-select: none;
+}
+
+.skill-node-label.blue-node:hover,
+.skill-node-label.blue-node.lit {
+  color: #fff;
+  border-color: var(--blue-primary);
+  background: rgba(0, 210, 255, 0.15);
+  box-shadow: 0 0 20px var(--blue-glow);
+  transform: translate(-50%, -50%) scale(1.1);
+}
+
+.skill-node-label.red-node:hover,
+.skill-node-label.red-node.lit {
+  color: #fff;
+  border-color: var(--red-primary);
+  background: rgba(255, 42, 95, 0.15);
+  box-shadow: 0 0 20px var(--red-glow);
+  transform: translate(-50%, -50%) scale(1.1);
+}
+
+/* ==========================================================================
+   PROJECTS (SPIDER-SILK SPINE & DUAL-TONE CARDS)
+   ========================================================================== */
+.projects-list {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.projects-spine {
+  position: absolute;
+  left: 10px;
+  top: 20px;
+  bottom: 20px;
+  width: 2px;
+  background: linear-gradient(to bottom, transparent, var(--blue-primary) 20%, var(--red-primary) 80%, transparent);
+}
+
+.project-row {
+  position: relative;
+  padding-left: 60px;
+  padding-block: 64px;
+  border-bottom: 1px solid var(--border-softer);
+}
+
+.project-row:first-child { padding-top: 0; }
+.project-row:last-child { border-bottom: none; }
+
+.project-node {
+  position: absolute;
+  left: 4px;
+  top: 76px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--bg-primary);
+  border: 2px solid var(--blue-primary);
+  box-shadow: 0 0 10px var(--blue-glow);
+  transition: all 0.4s var(--ease-smooth);
+}
+
+.project-row:nth-child(even) .project-node {
+  border-color: var(--red-primary);
+  box-shadow: 0 0 10px var(--red-glow);
+}
+
+.project-row:hover .project-node {
+  background: var(--blue-primary);
+  box-shadow: 0 0 25px var(--blue-primary), 0 0 45px var(--blue-glow);
+  transform: scale(1.3);
+}
+
+.project-row:nth-child(even):hover .project-node {
+  background: var(--red-primary);
+  box-shadow: 0 0 25px var(--red-primary), 0 0 45px var(--red-glow);
+}
+
+.project-card {
+  display: grid;
+  grid-template-columns: 1.15fr 1.35fr;
+  gap: 52px;
+  align-items: center;
+  padding: 32px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-soft);
+  border-radius: 20px;
+  backdrop-filter: blur(12px);
+  transition: all 0.45s var(--ease-smooth);
+}
+
+.project-row:hover .project-card {
+  border-color: var(--border-blue);
+  background: var(--bg-card-hover);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 30px rgba(0, 210, 255, 0.08);
+  transform: translateY(-4px);
+}
+
+.project-row:nth-child(even):hover .project-card {
+  border-color: var(--border-red);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 30px rgba(255, 42, 95, 0.08);
+}
+
+.project-media {
+  position: relative;
+  aspect-ratio: 16/10;
+  border-radius: 14px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #0b0f19 0%, #150d18 100%);
+  border: 1px solid var(--border-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.project-media-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.65;
+}
+
+.project-media .glyph {
+  position: relative;
+  z-index: 2;
+  font-family: var(--font-display);
+  font-size: clamp(48px, 6vw, 76px);
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.12);
+  transition: all 0.6s var(--ease-smooth);
+}
+
+.project-row:hover .project-media .glyph {
+  color: #fff;
+  text-shadow: 0 0 30px var(--blue-primary);
+  transform: scale(1.1);
+}
+
+.project-row:nth-child(even):hover .project-media .glyph {
+  text-shadow: 0 0 30px var(--red-primary);
+}
+
+.project-index {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--blue-primary);
+  margin-bottom: 12px;
+  display: block;
+}
+
+.project-row:nth-child(even) .project-index {
+  color: var(--red-primary);
+}
+
+.project-title {
+  font-size: clamp(22px, 2.4vw, 32px);
+  font-weight: 700;
+  margin-bottom: 14px;
+  color: #fff;
+  transition: color 0.3s var(--ease-smooth);
+}
+
+.project-row:hover .project-title {
+  color: var(--blue-primary);
+}
+
+.project-row:nth-child(even):hover .project-title {
+  color: var(--red-primary);
+}
+
+.project-desc {
+  color: var(--text-muted);
+  font-size: 14.5px;
+  line-height: 1.7;
+  margin-bottom: 22px;
+}
+
+.project-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 26px;
+}
+
+.project-tags span {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  padding: 5px 12px;
+  border: 1px solid var(--border-soft);
+  border-radius: 100px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.project-links {
+  display: flex;
+  gap: 14px;
+}
+
+.project-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+  padding: 10px 20px;
+  border: 1px solid var(--border-soft);
+  border-radius: 100px;
+  transition: all 0.3s var(--ease-smooth);
+}
+
+.project-links a:hover {
+  border-color: var(--blue-primary);
+  color: var(--blue-primary);
+  background: var(--blue-soft);
+  box-shadow: 0 0 16px var(--blue-glow);
+}
+
+.project-row:nth-child(even) .project-links a:hover {
+  border-color: var(--red-primary);
+  color: var(--red-primary);
+  background: var(--red-soft);
+  box-shadow: 0 0 16px var(--red-glow);
+}
+
+/* ==========================================================================
+   EXPERIENCE & EDUCATION TIMELINE
+   ========================================================================== */
+.exp-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+}
+
+.exp-col-title {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--blue-primary);
+  margin-bottom: 36px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.exp-col-title.edu {
+  color: var(--red-primary);
+}
+
+.timeline {
+  position: relative;
+  padding-left: 28px;
+  border-left: 1px solid var(--border-soft);
+}
+
+.timeline-item {
+  position: relative;
+  padding-bottom: 48px;
+}
+
+.timeline-item:last-child {
+  padding-bottom: 0;
+}
+
+.timeline-item::before {
+  content: '';
+  position: absolute;
+  left: -33px;
+  top: 4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--bg-primary);
+  border: 2px solid var(--blue-primary);
+  box-shadow: 0 0 12px var(--blue-glow);
+}
+
+.timeline.edu-timeline .timeline-item::before {
+  border-color: var(--red-primary);
+  box-shadow: 0 0 12px var(--red-glow);
+}
+
+.timeline-period {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--blue-primary);
+  margin-bottom: 8px;
+  display: block;
+}
+
+.timeline.edu-timeline .timeline-period {
+  color: var(--red-primary);
+}
+
+.timeline-title {
+  font-size: 18px;
+  font-weight: 600;
+  font-family: var(--font-heading);
+  margin-bottom: 4px;
+  color: #fff;
+}
+
+.timeline-org {
+  font-size: 13.5px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+.timeline-desc {
+  font-size: 14px;
+  color: var(--text-muted);
+  line-height: 1.7;
+}
+
+/* ==========================================================================
+   CONTACT SECTION
+   ========================================================================== */
+.contact-section {
+  min-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding-top: 140px;
+  padding-bottom: 140px;
+}
+
+.contact-title {
+  font-family: var(--font-display);
+  font-size: clamp(36px, 7vw, 92px);
+  font-weight: 800;
+  line-height: 1.05;
+  max-width: 960px;
+  letter-spacing: -0.03em;
+}
+
+.contact-sub {
+  margin-top: 24px;
+  color: var(--text-muted);
+  font-size: clamp(15px, 1.5vw, 18px);
+  max-width: 500px;
+  line-height: 1.7;
+}
+
+.contact-cta-box {
+  margin-top: 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.contact-cta {
+  font-family: var(--font-display);
+  font-size: clamp(20px, 3.2vw, 34px);
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 36px;
+  border-radius: 100px;
+  background: linear-gradient(90deg, rgba(0, 210, 255, 0.1) 0%, rgba(255, 42, 95, 0.1) 100%);
+  border: 1px solid var(--border-soft);
+  color: #fff;
+  backdrop-filter: blur(12px);
+  transition: all 0.4s var(--ease-smooth);
+}
+
+.contact-cta:hover {
+  border-color: var(--blue-primary);
+  box-shadow: 0 0 35px var(--blue-glow), 0 0 50px var(--red-glow);
+  gap: 24px;
+  transform: translateY(-3px);
+}
+
+.contact-socials {
+  display: flex;
+  gap: 28px;
+  margin-top: 64px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.contact-socials a {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  position: relative;
+  padding-bottom: 4px;
+  transition: color 0.3s var(--ease-smooth);
+}
+
+.contact-socials a::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0;
+  width: 0; height: 2px;
+  background: linear-gradient(90deg, var(--blue-primary), var(--red-primary));
+  transition: width 0.3s var(--ease-smooth);
+}
+
+.contact-socials a:hover {
+  color: var(--text-primary);
+}
+
+.contact-socials a:hover::after {
+  width: 100%;
+}
+
+/* ==========================================================================
+   FOOTER
+   ========================================================================== */
+footer {
+  position: relative;
+  z-index: 2;
+  padding: 36px clamp(20px, 5vw, 64px);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid var(--border-soft);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+  flex-wrap: wrap;
+  gap: 16px;
+  background: rgba(3, 4, 7, 0.9);
+}
+
+footer .to-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+  transition: color 0.3s var(--ease-smooth);
+}
+
+footer .to-top:hover {
+  color: var(--blue-primary);
+}
+
+/* ==========================================================================
+   RESPONSIVE DESIGN
+   ========================================================================== */
+@media (max-width: 980px) {
+  .about-grid { grid-template-columns: 1fr; gap: 48px; }
+  .project-card { grid-template-columns: 1fr; gap: 32px; padding: 24px; }
+  .exp-columns { grid-template-columns: 1fr; gap: 56px; }
+}
+
+@media (max-width: 768px) {
+  section { padding: 110px 20px; }
+  .nav-links {
+    position: fixed;
+    inset: 0;
+    z-index: 150;
+    background: rgba(3, 4, 7, 0.98);
+    backdrop-filter: blur(20px);
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 32px;
+    transform: translateY(-100%);
+    transition: transform 0.5s var(--ease-smooth);
+  }
+  body.nav-open .nav-links { transform: translateY(0); }
+  .nav-links a { font-size: 15px; }
+  .nav-toggle { display: block; }
+  .hero-cta-row { flex-direction: column; align-items: stretch; }
+  .btn { width: 100%; justify-content: center; }
+  .about-stats { grid-template-columns: 1fr; }
+  .skill-node-label { font-size: 11px; padding: 6px 12px; }
+  .hero-scroll-cue { display: none; }
+  .contact-socials { gap: 18px 24px; }
+  .projects-spine { left: 4px; }
+  .project-row { padding-left: 36px; }
+  .project-node { left: -2px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Custom Chromatic Dual-Ring Cursor -->
+<div class="cursor-dot" id="cursorDot"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+
+<!-- Signature Dual-Tone Spider Web Network Canvas -->
+<canvas id="web-canvas"></canvas>
+<div class="ambient-glow"></div>
+<div class="vignette"></div>
+<div class="grain"></div>
+
+<!-- ============================= NAVIGATION ============================= -->
+<nav class="navbar" id="navbar">
+  <div class="nav-inner">
+    <a href="#hero" class="nav-logo hoverable" data-cursor="HOME">
+      <div class="nav-logo-icon">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="12" r="3" fill="#00d2ff"/>
+          <path d="M12 2V22M2 12H22M5 5L19 19M19 5L5 19" stroke="url(#logo_grad)" stroke-width="1.5" stroke-linecap="round"/>
+          <defs>
+            <linearGradient id="logo_grad" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#00d2ff"/>
+              <stop offset="1" stop-color="#ff2a5f"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+      SIDDHARTHA<span class="dot-blue">.</span><span class="dot-red">AI</span>
+    </a>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="#about" data-nav class="hoverable" data-cursor="ABOUT">About</a></li>
+      <li><a href="#skills" data-nav class="hoverable" data-cursor="SKILLS">Skills</a></li>
+      <li><a href="#projects" data-nav class="hoverable" data-cursor="WORK">Projects</a></li>
+      <li><a href="#experience" data-nav class="hoverable" data-cursor="EXP">Experience</a></li>
+      <li><a href="#contact" data-nav class="hoverable" data-cursor="CONNECT">Contact</a></li>
+    </ul>
+    <div style="display:flex; align-items:center; gap:12px;">
+      <button class="sound-toggle-btn hoverable" id="soundToggle" data-cursor="AUDIO" aria-label="Toggle Spider Silk Audio">
+        <span id="soundIcon">⚡</span> Web Pluck
+      </button>
+      <button class="nav-toggle" id="navToggle" aria-label="Toggle menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<main>
+
+  <!-- =============================== HERO =============================== -->
+  <section class="hero" id="hero">
+    <div class="hero-badge-wrap reveal">
+      <div class="hero-kicker">
+        <div class="pulse-dot-container">
+          <div class="dot"></div>
+          <div class="dot-ring"></div>
+        </div>
+        Available for AI & Creative Engineering Roles
+      </div>
+    </div>
+    <h1 class="hero-name reveal">
+      <span class="first">SIDDHARTHA</span>
+      <span class="second">JAISWAL</span>
+    </h1>
+    <p class="hero-role reveal">
+      <span>Creative Developer</span>
+      <span class="sep">/</span>
+      <span class="tag-blue">AI Architect</span>
+      <span class="sep">·</span>
+      <span class="tag-red">3D WebGL</span>
+      <span class="sep">·</span>
+      <span class="stack-item">Interactive Systems</span>
+    </p>
+    <p class="hero-line reveal">
+      Architecting digital ecosystems where cutting-edge artificial intelligence meets high-impact visual design — crafting immersive web networks that feel reactive, organic, and alive.
+    </p>
+    <div class="hero-cta-row reveal">
+      <a href="#projects" class="btn btn-primary hoverable" data-cursor="EXPLORE">Explore Work →</a>
+      <a href="#contact" class="btn btn-ghost hoverable" data-cursor="TALK">Let's Connect</a>
+    </div>
+    <div class="hero-scroll-cue">
+      <div class="spider-thread"></div>
+      Scroll to traverse network
+    </div>
+  </section>
+
+  <!-- =============================== ABOUT =============================== -->
+  <section id="about">
+    <p class="eyebrow">01 — About</p>
+    <div class="about-grid">
+      <p class="about-lead reveal">
+        I engineer software with the precision of a spider weaving silk — where <span class="blue-text">computational rigor</span> and <span class="red-text">creative audacity</span> fuse seamlessly.
+      </p>
+      <div class="about-body">
+        <p class="reveal">
+          Over the past 4+ years, I have engineered full-stack architectures, multi-agent AI frameworks, real-time WebGL graphics, and ultra-fluid interfaces. I focus heavily on the subtle thresholds: the micro-interactions, low-latency state synchronization, and adaptive feedback that turn an application into a responsive instrument.
+        </p>
+        <p class="reveal">
+          My workflow spans scalable Python backends, LLM orchestration, custom shader development in Three.js, and modern reactive frontend frameworks.
+        </p>
+        <div class="about-stats reveal">
+          <div class="stat-card">
+            <div class="stat-num">4<span>+</span></div>
+            <div class="stat-label">Years Building</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num">30<span>+</span></div>
+            <div class="stat-label">Projects Shipped</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num">12<span>+</span></div>
+            <div class="stat-label">AI & 3D Systems</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =============================== SKILLS / NETWORK =============================== -->
+  <section id="skills">
+    <p class="eyebrow">02 — Neural Network</p>
+    <div class="skills-head">
+      <h2 class="reveal">Interconnected Stack.</h2>
+      <p class="reveal">
+        Hover over the nodes below to pluck the web strands and trace how technologies communicate across my software architecture.
+      </p>
+    </div>
+    <div class="skill-network-wrap reveal" id="skillNetwork">
+      <canvas id="skill-canvas"></canvas>
+    </div>
+  </section>
+
+  <!-- =============================== PROJECTS =============================== -->
+  <section id="projects">
+    <p class="eyebrow">03 — Projects</p>
+    <h2 class="reveal" style="font-size:clamp(32px, 4vw, 52px); margin-bottom:56px;">Featured Artifacts.</h2>
+
+    <div class="projects-list">
+      <div class="projects-spine"></div>
+
+      <!-- Project 1 -->
+      <article class="project-row reveal">
+        <div class="project-node"></div>
+        <div class="project-card">
+          <div class="project-media">
+            <canvas class="project-media-canvas" id="proj-canvas-1"></canvas>
+            <div class="glyph">01</div>
+          </div>
+          <div>
+            <span class="project-index">01 / Multi-Agent Framework</span>
+            <h3 class="project-title">GWEN — Autonomous Agent Ecosystem</h3>
+            <p class="project-desc">A distributed multi-agent system powered by LangChain and Ollama with autonomous planning, real-time memory management, web traversal, and dynamic tool invocation.</p>
+            <div class="project-tags">
+              <span>Python</span><span>FastAPI</span><span>LangChain</span><span>Vector DB</span><span>Next.js</span>
+            </div>
+            <div class="project-links">
+              <a href="#" class="hoverable" data-cursor="CODE">Source Code</a>
+              <a href="#" class="hoverable" data-cursor="LIVE">Live Demo</a>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Project 2 -->
+      <article class="project-row reveal">
+        <div class="project-node"></div>
+        <div class="project-card">
+          <div class="project-media">
+            <canvas class="project-media-canvas" id="proj-canvas-2"></canvas>
+            <div class="glyph">02</div>
+          </div>
+          <div>
+            <span class="project-index">02 / Real-time 3D & WebGL</span>
+            <h3 class="project-title">Lumen — 3D Cyber Configurator</h3>
+            <p class="project-desc">A high-performance WebGL environment built on Three.js featuring procedural raymarched materials, dynamic lighting baked in real-time, and sub-60ms state synchronization.</p>
+            <div class="project-tags">
+              <span>Three.js</span><span>GLSL Shaders</span><span>TypeScript</span><span>Node.js</span>
+            </div>
+            <div class="project-links">
+              <a href="#" class="hoverable" data-cursor="CODE">Source Code</a>
+              <a href="#" class="hoverable" data-cursor="LIVE">Live Demo</a>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Project 3 -->
+      <article class="project-row reveal">
+        <div class="project-node"></div>
+        <div class="project-card">
+          <div class="project-media">
+            <canvas class="project-media-canvas" id="proj-canvas-3"></canvas>
+            <div class="glyph">03</div>
+          </div>
+          <div>
+            <span class="project-index">03 / Neural Search Engine</span>
+            <h3 class="project-title">Sable — Semantic Monorepo Search</h3>
+            <p class="project-desc">A high-throughput vector embedding search engine designed to parse 2M+ lines of multi-language source code with intent classification and topological graph mapping.</p>
+            <div class="project-tags">
+              <span>Python</span><span>HuggingFace</span><span>ChromaDB</span><span>React</span>
+            </div>
+            <div class="project-links">
+              <a href="#" class="hoverable" data-cursor="CODE">Source Code</a>
+              <a href="#" class="hoverable" data-cursor="LIVE">Live Demo</a>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Project 4 -->
+      <article class="project-row reveal">
+        <div class="project-node"></div>
+        <div class="project-card">
+          <div class="project-media">
+            <canvas class="project-media-canvas" id="proj-canvas-4"></canvas>
+            <div class="glyph">04</div>
+          </div>
+          <div>
+            <span class="project-index">04 / Generative Pipeline</span>
+            <h3 class="project-title">Warp — Procedural Motion Engine</h3>
+            <p class="project-desc">A custom procedural animation pipeline that extracts skeletal animation curves and optimizes web asset payloads by 75% using quantization and spring physics.</p>
+            <div class="project-tags">
+              <span>JavaScript</span><span>Three.js</span><span>Maya API</span><span>WebAssembly</span>
+            </div>
+            <div class="project-links">
+              <a href="#" class="hoverable" data-cursor="CODE">Source Code</a>
+              <a href="#" class="hoverable" data-cursor="LIVE">Live Demo</a>
+            </div>
+          </div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- =============================== EXPERIENCE =============================== -->
+  <section id="experience">
+    <p class="eyebrow">04 — Experience & Journey</p>
+    <div class="exp-columns">
+      <div>
+        <p class="exp-col-title">Career Milestones</p>
+        <div class="timeline">
+          <div class="timeline-item reveal">
+            <span class="timeline-period">2024 — Present</span>
+            <h3 class="timeline-title">Lead AI & Creative Developer</h3>
+            <p class="timeline-org">Nimbus Studio / Multi-Agent Labs</p>
+            <p class="timeline-desc">Spearheading interactive architecture for generative AI systems, autonomous agent interfaces, and high-performance WebGL product demonstrations.</p>
+          </div>
+          <div class="timeline-item reveal">
+            <span class="timeline-period">2022 — 2024</span>
+            <h3 class="timeline-title">Full-Stack Software Engineer</h3>
+            <p class="timeline-org">Northlight Technologies</p>
+            <p class="timeline-desc">Engineered distributed backend pipelines and microservices catering to 250,000+ monthly active users with 99.99% uptime.</p>
+          </div>
+          <div class="timeline-item reveal">
+            <span class="timeline-period">2021 — 2022</span>
+            <h3 class="timeline-title">Software Engineering Intern</h3>
+            <p class="timeline-org">Verge Interactive Systems</p>
+            <p class="timeline-desc">Developed internal tooling, interactive data visualizations, and real-time frontend components.</p>
+          </div>
+        </div>
+      </div>
+      <div>
+        <p class="exp-col-title edu">Education & Honors</p>
+        <div class="timeline edu-timeline">
+          <div class="timeline-item reveal">
+            <span class="timeline-period">2018 — 2022</span>
+            <h3 class="timeline-title">B.Tech in Computer Science</h3>
+            <p class="timeline-org">Institute of Engineering & Technology</p>
+            <p class="timeline-desc">Specialized in Machine Learning, Distributed Algorithms, and Computer Graphics. Authored research on Neural Style Transfer in real-time shaders.</p>
+          </div>
+          <div class="timeline-item reveal">
+            <span class="timeline-period">2023</span>
+            <h3 class="timeline-title">Deep Learning & LLM Systems Specialization</h3>
+            <p class="timeline-org">Advanced Certification</p>
+            <p class="timeline-desc">Intensive mastery over Retrieval-Augmented Generation (RAG), fine-tuning transformers, and Agentic Workflow architectures.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =============================== CONTACT =============================== -->
+  <section id="contact" class="contact-section">
+    <p class="eyebrow" style="justify-content:center;">05 — Connect</p>
+    <h2 class="contact-title reveal">
+      Ready to weave something <span class="gradient-text-duo">extraordinary?</span>
+    </h2>
+    <p class="contact-sub reveal">
+      Whether you need an AI-powered system, a breathtaking 3D web experience, or senior engineering expertise — my inbox is open.
+    </p>
+    <div class="contact-cta-box reveal">
+      <a href="mailto:hello@siddharthajaiswal.dev" class="contact-cta hoverable" data-cursor="EMAIL">
+        hello@siddharthajaiswal.dev →
+      </a>
+    </div>
+    <div class="contact-socials reveal">
+      <a href="https://github.com" target="_blank" rel="noreferrer" class="hoverable" data-cursor="↗">GitHub</a>
+      <a href="https://linkedin.com" target="_blank" rel="noreferrer" class="hoverable" data-cursor="↗">LinkedIn</a>
+      <a href="https://twitter.com" target="_blank" rel="noreferrer" class="hoverable" data-cursor="↗">Twitter / X</a>
+      <a href="#" class="hoverable" data-cursor="↗">Discord</a>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <span>© <span id="year"></span> Siddhartha Jaiswal. Engineered with Duo-Tone Cyber Silk.</span>
+  <a href="#hero" class="to-top hoverable" data-cursor="TOP">Back to nexus ↑</a>
+</footer>
+
+<!-- ==========================================================================
+   SCRIPTS & INTERACTIVE ENGINES
+   ========================================================================== -->
+<script>
+document.getElementById('year').textContent = new Date().getFullYear();
+
+const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const isFinePointer = window.matchMedia('(pointer: fine)').matches && window.matchMedia('(hover: hover)').matches;
+const isMobile = window.matchMedia('(max-width: 768px)').matches;
+
+if (isFinePointer) document.body.classList.add('has-fine-pointer');
+if (window.gsap && window.ScrollTrigger) gsap.registerPlugin(ScrollTrigger);
+
+/* ==========================================================================
+   OPTIONAL WEB-AUDIO SYNTH (WEB PLUCK SOUND)
+   ========================================================================== */
+let audioCtx = null;
+let soundEnabled = false;
+const soundToggle = document.getElementById('soundToggle');
+
+function initAudio() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+}
+
+function playSilkPluck(freq = 440, type = 'sine') {
+  if (!soundEnabled || !audioCtx) return;
+  try {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(freq * 0.4, audioCtx.currentTime + 0.25);
+    
+    gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.3);
+    
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.3);
+  } catch (e) {}
+}
+
+soundToggle.addEventListener('click', () => {
+  initAudio();
+  soundEnabled = !soundEnabled;
+  soundToggle.classList.toggle('active', soundEnabled);
+  document.getElementById('soundIcon').textContent = soundEnabled ? '🔊' : '⚡';
+  if (soundEnabled) playSilkPluck(587.33);
+});
+
+/* ==========================================================================
+   NAVIGATION & ACTIVE LINKS
+   ========================================================================== */
+(function navController() {
+  const navbar = document.getElementById('navbar');
+  const toggle = document.getElementById('navToggle');
+  const navLinks = document.querySelectorAll('[data-nav]');
+  const sections = document.querySelectorAll('main section[id]');
+
+  window.addEventListener('scroll', () => {
+    navbar.classList.toggle('scrolled', window.scrollY > 40);
+  }, { passive: true });
+
+  toggle.addEventListener('click', () => {
+    document.body.classList.toggle('nav-open');
+  });
+
+  navLinks.forEach(a => a.addEventListener('click', () => document.body.classList.remove('nav-open')));
+
+  if ('IntersectionObserver' in window) {
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          navLinks.forEach(l => l.classList.toggle('active', l.getAttribute('href') === '#' + entry.target.id));
+        }
+      });
+    }, { rootMargin: '-40% 0px -40% 0px' });
+    sections.forEach(s => obs.observe(s));
+  }
+})();
+
+/* ==========================================================================
+   CUSTOM DUAL-TONE CURSOR
+   ========================================================================== */
+(function cursorController() {
+  if (!isFinePointer) return;
+  const dot = document.getElementById('cursorDot');
+  const ring = document.getElementById('cursorRing');
+  let mx = window.innerWidth / 2, my = window.innerHeight / 2;
+  let rx = mx, ry = my;
+
+  window.addEventListener('mousemove', e => {
+    mx = e.clientX; my = e.clientY;
+    dot.style.left = mx + 'px';
+    dot.style.top = my + 'px';
+  });
+
+  function loop() {
+    rx += (mx - rx) * 0.18;
+    ry += (my - ry) * 0.18;
+    ring.style.left = rx + 'px';
+    ring.style.top = ry + 'px';
+    requestAnimationFrame(loop);
+  }
+  loop();
+
+  document.querySelectorAll('.hoverable').forEach(el => {
+    el.addEventListener('mouseenter', () => {
+      document.body.classList.add('cursor-active');
+      ring.setAttribute('data-label', el.getAttribute('data-cursor') || '');
+    });
+    el.addEventListener('mouseleave', () => {
+      document.body.classList.remove('cursor-active');
+    });
+  });
+})();
+
+/* ==========================================================================
+   MAGNETIC BUTTON ATTRACTION
+   ========================================================================== */
+(function magnetic() {
+  if (!isFinePointer || prefersReducedMotion) return;
+  document.querySelectorAll('.btn, .contact-cta, .stat-card').forEach(btn => {
+    btn.addEventListener('mousemove', e => {
+      const r = btn.getBoundingClientRect();
+      const x = (e.clientX - r.left - r.width / 2) * 0.2;
+      const y = (e.clientY - r.top - r.height / 2) * 0.25;
+      btn.style.transform = `translate(${x}px, ${y}px)`;
+    });
+    btn.addEventListener('mouseleave', () => {
+      btn.style.transform = 'translate(0,0)';
+    });
+  });
+})();
+
+/* ==========================================================================
+   SCROLL REVEAL (GSAP)
+   ========================================================================== */
+(function scrollReveal() {
+  const els = document.querySelectorAll('.reveal');
+  if (prefersReducedMotion || !('IntersectionObserver' in window)) {
+    els.forEach(el => { el.style.opacity = 1; el.style.transform = 'none'; });
+    return;
+  }
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach((entry, i) => {
+      if (entry.isIntersecting) {
+        gsap.to(entry.target, {
+          opacity: 1,
+          y: 0,
+          duration: 1.1,
+          ease: 'power3.out',
+          delay: (i % 3) * 0.08
+        });
+        obs.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.12, rootMargin: '0px 0px -5% 0px' });
+  els.forEach(el => obs.observe(el));
+})();
+
+/* ==========================================================================
+   DUAL-TONE SPIDER WEB NETWORK ENGINE (BLUE & RED SILK SIMULATION)
+   ========================================================================== */
+(function SpiderWebField() {
+  const canvas = document.getElementById('web-canvas');
+  const ctx = canvas.getContext('2d');
+
+  const CONFIG = {
+    strandCount: isMobile ? 18 : 28,      // Radial anchor strands
+    ringCount: isMobile ? 8 : 14,          // Concentric spiral capture rings
+    baseAlpha: 0.22,                       // Base opacity of silk strokes
+    driftSpeed: 0.00028,                   // Ambient web breathing
+    parallaxAmt: isMobile ? 8 : 34,        // Parallax depth responsiveness
+    pluckRadius: 220,                      // Radius for interactive silk plucking
+    pluckForce: 35,                        // Tension displacement
+    travelerCount: isMobile ? 6 : 12,      // Action potential light pulses
+    blueColor: '#00d2ff',
+    redColor: '#ff2a5f',
+    purpleColor: '#a855f7',
+  };
+
+  let w, h, dpr, cx, cy, maxR;
+  let strandAngles = [];
+  let ringRadii = [];
+  let ringWobble = [];
+  let strandColors = [];
+  let pointer = { x: 0, y: 0, tx: 0.5, ty: 0.4, vx: 0, vy: 0, lastX: 0, lastY: 0 };
+  let depth = 1;
+  let targetDepth = 1;
+  let travelers = [];
+  let plucks = []; // Active harmonic ripples
+
+  function resize() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    w = canvas.width = Math.floor(window.innerWidth * dpr);
+    h = canvas.height = Math.floor(window.innerHeight * dpr);
+    canvas.style.width = window.innerWidth + 'px';
+    canvas.style.height = window.innerHeight + 'px';
+    cx = w * 0.5;
+    cy = h * 0.42;
+    maxR = Math.hypot(w, h) * 0.65;
+    buildGeometry();
+  }
+
+  function buildGeometry() {
+    strandAngles = [];
+    strandColors = [];
+    for (let i = 0; i < CONFIG.strandCount; i++) {
+      strandAngles.push((i / CONFIG.strandCount) * Math.PI * 2);
+      // Alternate or gradient between blue and red
+      strandColors.push(i % 2 === 0 ? 'blue' : 'red');
+    }
+
+    ringRadii = [];
+    for (let i = 1; i <= CONFIG.ringCount; i++) {
+      // Natural logarithmic-like spacing for spider orb-web tension
+      ringRadii.push(Math.pow(i / CONFIG.ringCount, 0.84) * maxR);
+    }
+
+    // Dynamic wave matrix for organic silk wobble
+    ringWobble = ringRadii.map((_, rIdx) =>
+      strandAngles.map((_, sIdx) => ({
+        amp: (Math.random() * 0.04 + 0.015) * maxR,
+        phase: Math.random() * Math.PI * 2,
+        freq: Math.random() * 0.6 + 0.4,
+        tensionOffset: 0,
+        tensionVelocity: 0
+      }))
+    );
+
+    travelers = Array.from({ length: CONFIG.travelerCount }, (_, i) => spawnTraveler(i));
+  }
+
+  function spawnTraveler(index) {
+    const isBlue = Math.random() > 0.5;
+    return {
+      strand: Math.floor(Math.random() * CONFIG.strandCount),
+      t: Math.random(),
+      speed: (Math.random() * 0.0035 + 0.002) * (Math.random() > 0.5 ? 1 : -1),
+      type: isBlue ? 'blue' : 'red',
+      color: isBlue ? 'rgba(0, 210, 255,' : 'rgba(255, 42, 95,',
+      glow: isBlue ? '#00d2ff' : '#ff2a5f',
+      size: Math.random() * 1.5 + 1.2
+    };
+  }
+
+  function getPoint(ringIdx, strandIdx, time) {
+    const angle = strandAngles[strandIdx];
+    const wob = ringWobble[ringIdx][strandIdx];
+    
+    // Organic breathing oscillation
+    const breathing = Math.sin(time * CONFIG.driftSpeed * wob.freq * 60 + wob.phase) * wob.amp;
+    let r = ringRadii[ringIdx] + breathing + wob.tensionOffset;
+
+    // Base coordinate
+    const baseX = cx + Math.cos(angle) * r;
+    const baseY = cy + Math.sin(angle) * r;
+
+    // Interactive Silk Plucking / Cursor Tension Distortion
+    const dx = baseX - pointer.x;
+    const dy = baseY - pointer.y;
+    const dist = Math.hypot(dx, dy);
+    const influence = Math.max(0, 1 - dist / (CONFIG.pluckRadius * dpr));
+
+    let tensionPush = 0;
+    if (influence > 0) {
+      tensionPush = influence * influence * CONFIG.pluckForce * dpr;
+      r += tensionPush;
+
+      // When fast cursor cuts through strand, induce harmonic oscillation
+      if (Math.hypot(pointer.vx, pointer.vy) > 8 && Math.random() < 0.02) {
+        wob.tensionVelocity += (Math.random() - 0.5) * 12;
+        if (soundEnabled && Math.random() < 0.2) {
+          playSilkPluck(strandIdx % 2 === 0 ? 330 + ringIdx * 40 : 440 + ringIdx * 30);
+        }
+      }
+    }
+
+    // Spring physics update for tension recovery
+    wob.tensionOffset += wob.tensionVelocity;
+    wob.tensionVelocity -= wob.tensionOffset * 0.12; // Spring restorative force
+    wob.tensionVelocity *= 0.88;                     // Damping
+
+    return {
+      x: cx + Math.cos(angle) * r,
+      y: cy + Math.sin(angle) * r,
+      dist,
+      influence
+    };
+  }
+
+  function draw(time) {
+    ctx.clearRect(0, 0, w, h);
+
+    const parallaxX = (pointer.tx - 0.5) * CONFIG.parallaxAmt * dpr * depth;
+    const parallaxY = (pointer.ty - 0.5) * CONFIG.parallaxAmt * dpr * depth;
+
+    ctx.save();
+    ctx.translate(parallaxX, parallaxY);
+
+    const alpha = CONFIG.baseAlpha * depth;
+
+    if (alpha > 0.003) {
+      // 1. Radial Anchor Strands (Duo-tone Blue & Red Silk Lines)
+      for (let s = 0; s < CONFIG.strandCount; s++) {
+        const isBlue = strandColors[s] === 'blue';
+        ctx.beginPath();
+        for (let r = 0; r < CONFIG.ringCount; r++) {
+          const pt = getPoint(r, s, time);
+          if (r === 0) {
+            ctx.moveTo(cx, cy);
+          }
+          ctx.lineTo(pt.x, pt.y);
+        }
+
+        const grad = ctx.createLinearGradient(cx, cy, cx + Math.cos(strandAngles[s]) * maxR, cy + Math.sin(strandAngles[s]) * maxR);
+        if (isBlue) {
+          grad.addColorStop(0, `rgba(0, 210, 255, ${alpha * 1.3})`);
+          grad.addColorStop(0.6, `rgba(0, 180, 255, ${alpha * 0.7})`);
+          grad.addColorStop(1, 'rgba(0, 100, 255, 0)');
+        } else {
+          grad.addColorStop(0, `rgba(255, 42, 95, ${alpha * 1.3})`);
+          grad.addColorStop(0.6, `rgba(255, 70, 120, ${alpha * 0.7})`);
+          grad.addColorStop(1, 'rgba(180, 0, 60, 0)');
+        }
+
+        ctx.strokeStyle = grad;
+        ctx.lineWidth = (isBlue ? 1.1 : 0.9) * dpr * 0.7;
+        ctx.stroke();
+      }
+
+      // 2. Concentric Capture Silk Spirals (Cross-Connecting Webs)
+      for (let r = 0; r < CONFIG.ringCount; r++) {
+        ctx.beginPath();
+        for (let s = 0; s <= CONFIG.strandCount; s++) {
+          const sIdx = s % CONFIG.strandCount;
+          const pt = getPoint(r, sIdx, time);
+          if (s === 0) ctx.moveTo(pt.x, pt.y);
+          else ctx.lineTo(pt.x, pt.y);
+        }
+
+        const ringRatio = r / CONFIG.ringCount;
+        const ringFade = 1 - ringRatio * 0.55;
+
+        // Alternate ring colors: blue-dominant inside, chromatic blend, red outside
+        const strokeGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, maxR);
+        strokeGrad.addColorStop(0, `rgba(0, 210, 255, ${alpha * ringFade * 0.9})`);
+        strokeGrad.addColorStop(0.5, `rgba(168, 85, 247, ${alpha * ringFade * 0.8})`);
+        strokeGrad.addColorStop(1, `rgba(255, 42, 95, ${alpha * ringFade * 0.7})`);
+
+        ctx.strokeStyle = strokeGrad;
+        ctx.lineWidth = 0.85 * dpr * 0.7;
+        ctx.stroke();
+      }
+
+      // 3. Glowing Bio-Luminescent Junction Dew Drops (Blue & Red Nodes)
+      ctx.save();
+      for (let s = 0; s < CONFIG.strandCount; s += 2) {
+        for (let r = 1; r < CONFIG.ringCount; r += 2) {
+          const pt = getPoint(r, s, time);
+          const isBlue = (s + r) % 4 === 0;
+          const pulse = (Math.sin(time * 0.0008 + s * 1.5 + r * 2.1) + 1) * 0.5;
+          const nodeAlpha = alpha * (0.4 + pulse * 0.7);
+
+          if (nodeAlpha < 0.02) continue;
+
+          ctx.beginPath();
+          ctx.fillStyle = isBlue ? `rgba(0, 210, 255, ${nodeAlpha})` : `rgba(255, 42, 95, ${nodeAlpha})`;
+          ctx.shadowColor = isBlue ? '#00d2ff' : '#ff2a5f';
+          ctx.shadowBlur = (isBlue ? 8 : 10) * dpr * (0.6 + pulse * 0.8);
+          ctx.arc(pt.x, pt.y, (1.2 + pulse * 0.6) * dpr, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+      ctx.restore();
+
+      // 4. Action Potential Pulses Traveling Along Silk Strands
+      ctx.save();
+      travelers.forEach(tr => {
+        tr.t += tr.speed;
+        if (tr.t > 1) {
+          tr.t = 0;
+          tr.strand = Math.floor(Math.random() * CONFIG.strandCount);
+        } else if (tr.t < 0) {
+          tr.t = 1;
+          tr.strand = Math.floor(Math.random() * CONFIG.strandCount);
+        }
+
+        const ringFloat = tr.t * (CONFIG.ringCount - 1);
+        const r0 = Math.floor(ringFloat);
+        const frac = ringFloat - r0;
+        const p0 = getPoint(r0, tr.strand, time);
+        const p1 = getPoint(Math.min(r0 + 1, CONFIG.ringCount - 1), tr.strand, time);
+
+        const px = p0.x + (p1.x - p0.x) * frac;
+        const py = p0.y + (p1.y - p0.y) * frac;
+        const pulseAlpha = 0.9 * depth * (1 - Math.abs(tr.t - 0.5) * 0.6);
+
+        ctx.beginPath();
+        ctx.fillStyle = `${tr.color}${pulseAlpha})`;
+        ctx.shadowColor = tr.glow;
+        ctx.shadowBlur = 14 * dpr;
+        ctx.arc(px, py, tr.size * dpr, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      ctx.restore();
+
+      // 5. Dual-Glow Central Arachnid Vortex / Core Origin
+      const coreGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 260 * dpr);
+      coreGrad.addColorStop(0, `rgba(0, 210, 255, ${0.12 * depth})`);
+      coreGrad.addColorStop(0.4, `rgba(255, 42, 95, ${0.08 * depth})`);
+      coreGrad.addColorStop(1, 'transparent');
+      ctx.fillStyle = coreGrad;
+      ctx.beginPath();
+      ctx.arc(cx, cy, 260 * dpr, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.restore();
+  }
+
+  function loop(time) {
+    pointer.vx = (pointer.tx * w - pointer.x) * 0.08;
+    pointer.vy = (pointer.ty * h - pointer.y) * 0.08;
+    pointer.x += pointer.vx;
+    pointer.y += pointer.vy;
+
+    depth += (targetDepth - depth) * 0.06;
+    draw(time || 0);
+    requestAnimationFrame(loop);
+  }
+
+  window.addEventListener('resize', resize, { passive: true });
+
+  window.addEventListener('mousemove', e => {
+    pointer.tx = e.clientX / window.innerWidth;
+    pointer.ty = e.clientY / window.innerHeight;
+  }, { passive: true });
+
+  window.addEventListener('touchmove', e => {
+    if (!e.touches[0]) return;
+    pointer.tx = e.touches[0].clientX / window.innerWidth;
+    pointer.ty = e.touches[0].clientY / window.innerHeight;
+  }, { passive: true });
+
+  function bindScrollTriggers() {
+    if (!window.ScrollTrigger) return;
+    const hero = document.getElementById('hero');
+    const contact = document.getElementById('contact');
+
+    ScrollTrigger.create({
+      trigger: hero,
+      start: 'top top',
+      end: 'bottom top',
+      onUpdate: self => {
+        targetDepth = 1 - self.progress * 0.65;
+      }
+    });
+
+    ScrollTrigger.create({
+      trigger: contact,
+      start: 'top center',
+      end: 'top top',
+      onUpdate: self => {
+        targetDepth = 0.35 + self.progress * 0.65;
+      }
+    });
+
+    ScrollTrigger.create({
+      trigger: contact,
+      start: 'top top',
+      end: 'bottom bottom',
+      onUpdate: () => { targetDepth = 1; }
+    });
+  }
+
+  resize();
+  if (prefersReducedMotion) {
+    draw(0);
+  } else {
+    requestAnimationFrame(loop);
+  }
+  window.addEventListener('load', bindScrollTriggers);
+})();
+
+/* ==========================================================================
+   SKILL NETWORK CANVAS (INTERACTIVE DUAL-TONE CONSTELLATION)
+   ========================================================================== */
+(function SkillNetwork() {
+  const wrap = document.getElementById('skillNetwork');
+  const canvas = document.getElementById('skill-canvas');
+  const ctx = canvas.getContext('2d');
+
+  const skills = [
+    { name: 'Python', type: 'blue' },
+    { name: 'PyTorch / AI', type: 'red' },
+    { name: 'JavaScript', type: 'blue' },
+    { name: 'React / Next.js', type: 'blue' },
+    { name: 'Three.js / WebGL', type: 'red' },
+    { name: 'FastAPI / Node', type: 'blue' },
+    { name: 'Vector DBs', type: 'red' },
+    { name: 'LangChain', type: 'red' },
+    { name: 'Shaders / GLSL', type: 'red' },
+    { name: 'Docker / DevOps', type: 'blue' }
+  ];
+
+  let w, h, dpr, nodes = [], labelEls = [];
+
+  function resize() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const rect = wrap.getBoundingClientRect();
+    w = canvas.width = Math.floor(rect.width * dpr);
+    h = canvas.height = Math.floor(rect.height * dpr);
+    canvas.style.width = rect.width + 'px';
+    canvas.style.height = rect.height + 'px';
+    layout(rect.width, rect.height);
+  }
+
+  function layout() {
+    const cx = w / 2, cy = h / 2;
+    const rx = w * 0.38, ry = h * 0.36;
+
+    nodes = skills.map((item, i) => {
+      const angle = (i / skills.length) * Math.PI * 2 - Math.PI / 2;
+      const rVar = 0.82 + ((i % 3) * 0.1);
+      return {
+        name: item.name,
+        type: item.type,
+        x: cx + Math.cos(angle) * rx * rVar,
+        y: cy + Math.sin(angle) * ry * rVar,
+        cssX: 0.5 + (Math.cos(angle) * (rx * rVar) / w),
+        cssY: 0.5 + (Math.sin(angle) * (ry * rVar) / h),
+        lit: 0,
+        litTarget: 0,
+      };
+    });
+
+    labelEls.forEach(el => el.remove());
+    labelEls = nodes.map(n => {
+      const el = document.createElement('div');
+      el.className = `skill-node-label ${n.type}-node hoverable`;
+      el.textContent = n.name;
+      el.style.left = (n.cssX * 100) + '%';
+      el.style.top = (n.cssY * 100) + '%';
+      el.setAttribute('data-cursor', n.type === 'blue' ? 'TECH' : 'AI/3D');
+      wrap.appendChild(el);
+
+      el.addEventListener('mouseenter', () => {
+        n.litTarget = 1;
+        if (soundEnabled) playSilkPluck(n.type === 'blue' ? 480 : 640);
+      });
+      el.addEventListener('mouseleave', () => { n.litTarget = 0; });
+      return el;
+    });
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, w, h);
+    const cx = w / 2, cy = h / 2;
+
+    // Connect nodes to center spider nexus and adjacent neighbors
+    nodes.forEach((n, i) => {
+      const next = nodes[(i + 1) % nodes.length];
+      const cross = nodes[(i + 3) % nodes.length];
+
+      [[cx, cy], [next.x, next.y], [cross.x, cross.y]].forEach(([tx, ty], idx) => {
+        ctx.beginPath();
+        const grad = ctx.createLinearGradient(n.x, n.y, tx, ty);
+        const intensity = 0.12 + (n.lit + (next.lit || 0)) * 0.35;
+        
+        if (n.type === 'blue') {
+          grad.addColorStop(0, `rgba(0, 210, 255, ${intensity})`);
+          grad.addColorStop(1, `rgba(255, 42, 95, ${intensity * 0.4})`);
+        } else {
+          grad.addColorStop(0, `rgba(255, 42, 95, ${intensity})`);
+          grad.addColorStop(1, `rgba(0, 210, 255, ${intensity * 0.4})`);
+        }
+
+        ctx.strokeStyle = grad;
+        ctx.lineWidth = (idx === 0 ? 1.5 : 0.8) * dpr;
+        ctx.moveTo(n.x, n.y);
+        ctx.lineTo(tx, ty);
+        ctx.stroke();
+      });
+    });
+
+    // Central Core Pulse
+    ctx.beginPath();
+    ctx.fillStyle = 'rgba(0, 210, 255, 0.7)';
+    ctx.shadowColor = '#00d2ff';
+    ctx.shadowBlur = 18 * dpr;
+    ctx.arc(cx, cy, 4 * dpr, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // Render individual nodes
+    nodes.forEach((n, i) => {
+      n.lit += (n.litTarget - n.lit) * 0.14;
+      labelEls[i].classList.toggle('lit', n.lit > 0.4);
+
+      const r = (3 + n.lit * 2.5) * dpr;
+      ctx.beginPath();
+      ctx.fillStyle = n.type === 'blue' ? `rgba(0, 210, 255, ${0.5 + n.lit * 0.5})` : `rgba(255, 42, 95, ${0.5 + n.lit * 0.5})`;
+      
+      if (n.lit > 0.05) {
+        ctx.shadowColor = n.type === 'blue' ? '#00d2ff' : '#ff2a5f';
+        ctx.shadowBlur = 14 * dpr * n.lit;
+      }
+      
+      ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    });
+
+    requestAnimationFrame(draw);
+  }
+
+  window.addEventListener('resize', resize, { passive: true });
+  resize();
+  if (!prefersReducedMotion) {
+    requestAnimationFrame(draw);
+  } else {
+    draw();
+  }
+})();
+
+/* ==========================================================================
+   PROJECT CARD MINI-CANVASES (INTERACTIVE AMBIENT SIMULATIONS)
+   ========================================================================== */
+(function initProjectMiniCanvases() {
+  ['proj-canvas-1', 'proj-canvas-2', 'proj-canvas-3', 'proj-canvas-4'].forEach((id, idx) => {
+    const c = document.getElementById(id);
+    if (!c) return;
+    const ctx = c.getContext('2d');
+    let pw, ph;
+
+    function resize() {
+      pw = c.width = c.offsetWidth;
+      ph = c.height = c.offsetHeight;
+    }
+    resize();
+
+    let t = 0;
+    function render() {
+      t += 0.02;
+      ctx.clearRect(0, 0, pw, ph);
+
+      ctx.save();
+      if (idx === 0) {
+        // Multi-Agent neural mesh
+        for (let i = 0; i < 8; i++) {
+          const x = (Math.sin(t + i) * 0.35 + 0.5) * pw;
+          const y = (Math.cos(t * 0.8 + i * 1.5) * 0.35 + 0.5) * ph;
+          ctx.beginPath();
+          ctx.arc(x, y, 3, 0, Math.PI * 2);
+          ctx.fillStyle = i % 2 === 0 ? '#00d2ff' : '#ff2a5f';
+          ctx.shadowColor = ctx.fillStyle;
+          ctx.shadowBlur = 8;
+          ctx.fill();
+        }
+      } else if (idx === 1) {
+        // WebGL 3D Rotating Cube Ring
+        ctx.translate(pw / 2, ph / 2);
+        ctx.rotate(t * 0.5);
+        ctx.strokeStyle = 'rgba(0, 210, 255, 0.4)';
+        ctx.strokeRect(-40, -40, 80, 80);
+        ctx.rotate(-t);
+        ctx.strokeStyle = 'rgba(255, 42, 95, 0.4)';
+        ctx.strokeRect(-30, -30, 60, 60);
+      } else if (idx === 2) {
+        // Vector Embedding Waves
+        ctx.beginPath();
+        for (let x = 0; x < pw; x += 6) {
+          const y = ph / 2 + Math.sin(x * 0.04 + t * 2) * 20;
+          if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.strokeStyle = '#00d2ff';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      } else {
+        // Motion Rig Curves
+        ctx.beginPath();
+        for (let x = 0; x < pw; x += 10) {
+          const y = ph / 2 + Math.cos(x * 0.03 - t * 1.5) * 25;
+          ctx.arc(x, y, 2, 0, Math.PI * 2);
+        }
+        ctx.fillStyle = '#ff2a5f';
+        ctx.fill();
+      }
+      ctx.restore();
+
+      requestAnimationFrame(render);
+    }
+    if (!prefersReducedMotion) requestAnimationFrame(render);
+  });
+})();
+</script>
+</body>
+</html>

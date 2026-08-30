@@ -1,0 +1,23 @@
+{
+  "name": "multi-agent-ai-assistant",
+  "version": "1.0.0",
+  "description": "GWEN — Local-First Multi-Agent AI Assistant",
+  "main": "index.html",
+  "scripts": {
+    "dev": "powershell -ExecutionPolicy Bypass -File .\\start.ps1",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev:backend": ".\\.venv\\Scripts\\python.exe -m uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8000 --reload",
+    "build": "npm --prefix frontend run build",
+    "start": "powershell -ExecutionPolicy Bypass -File .\\start.ps1",
+    "test": ".\\.venv\\Scripts\\pytest.exe -v"
+  },
+  "keywords": [
+    "ai",
+    "multi-agent",
+    "fastapi",
+    "nextjs",
+    "ollama"
+  ],
+  "author": "",
+  "license": "ISC"
+}

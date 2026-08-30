@@ -1,0 +1,199 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ==========================================================================
+   GWEN DESIGN TOKENS — Cyber Arachnid Hyper-Red (#ff1a40) Theme
+   ========================================================================== */
+:root {
+  --bg-primary: #030407;
+  --bg-secondary: #07090e;
+  --bg-elevated: #0d1017;
+  --bg-card: rgba(13, 16, 23, 0.72);
+  --bg-card-hover: rgba(20, 24, 35, 0.88);
+
+  --text-primary: #f8fafc;
+  --text-muted: #94a3b8;
+  --text-faint: #475569;
+
+  /* Target Hyper Red (#ff1a40) Palette */
+  --primary: #ff1a40;
+  --primary-glow: rgba(255, 26, 64, 0.48);
+  --primary-soft: rgba(255, 26, 64, 0.12);
+  --primary-subtle: rgba(255, 26, 64, 0.06);
+  --primary-deep: #cc002b;
+  --primary-light: #ff4d6d;
+
+  --red-primary: #ff1a40;
+  --red-glow: rgba(255, 26, 64, 0.48);
+  --red-soft: rgba(255, 26, 64, 0.12);
+  --red-deep: #cc002b;
+
+  --border-soft: rgba(255, 255, 255, 0.08);
+  --border-primary: rgba(255, 26, 64, 0.28);
+  --border-primary-strong: rgba(255, 26, 64, 0.55);
+  --border-softer: rgba(255, 255, 255, 0.04);
+
+  --font-display: 'Outfit', 'Space Grotesk', sans-serif;
+  --font-heading: 'Space Grotesk', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --ease-elastic: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  --ease-smooth: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  background: var(--bg-primary);
+  color-scheme: dark;
+}
+
+body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-weight: 300;
+  overflow-x: hidden;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: rgba(255, 26, 64, 0.35);
+  color: #fff;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(to bottom, #ff1a40, #99001f);
+  border-radius: 4px;
+}
+
+/* Ambient Radial Glows & Grid */
+.ambient-glow {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 15% 20%, rgba(255, 26, 64, 0.09) 0%, transparent 45%),
+    radial-gradient(circle at 85% 75%, rgba(255, 26, 64, 0.07) 0%, transparent 50%),
+    radial-gradient(circle at 50% 50%, rgba(204, 0, 43, 0.04) 0%, transparent 65%);
+}
+
+.ambient-grid {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: radial-gradient(circle at 50% 50%, black 35%, transparent 75%);
+}
+
+/* Glassmorphic Components */
+.glass-panel {
+  background: var(--bg-card);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-soft);
+  border-radius: 12px;
+  transition: all 0.3s var(--ease-smooth);
+}
+
+.glass-panel:hover {
+  background: var(--bg-card-hover);
+  border-color: rgba(255, 26, 64, 0.35);
+  box-shadow: 0 4px 25px -5px rgba(255, 26, 64, 0.15);
+}
+
+.glass-card-primary {
+  background: linear-gradient(135deg, rgba(255, 26, 64, 0.07) 0%, rgba(13, 16, 23, 0.75) 100%);
+  border: 1px solid var(--border-primary);
+  box-shadow: 0 4px 20px -5px rgba(255, 26, 64, 0.2);
+}
+
+.glass-card-red {
+  background: linear-gradient(135deg, rgba(255, 26, 64, 0.08) 0%, rgba(13, 16, 23, 0.75) 100%);
+  border: 1px solid var(--border-primary);
+  box-shadow: 0 4px 25px -5px rgba(255, 26, 64, 0.25);
+}
+
+/* Glowing Typography */
+.glow-text-primary {
+  color: var(--primary);
+  text-shadow: 0 0 20px var(--primary-glow);
+}
+
+.glow-text-red {
+  color: var(--red-primary);
+  text-shadow: 0 0 20px var(--red-glow);
+}
+
+.glow-text-duo {
+  background: linear-gradient(135deg, #ffffff 0%, #ff4d6d 50%, #ff1a40 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Buttons */
+.btn-duo, .btn-primary-glow {
+  background: linear-gradient(135deg, #ff1a40 0%, #cc002b 100%);
+  color: #fff;
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 0.6rem 1.25rem;
+  transition: all 0.3s var(--ease-smooth);
+  box-shadow: 0 0 18px rgba(255, 26, 64, 0.38);
+}
+
+.btn-duo:hover, .btn-primary-glow:hover {
+  transform: translateY(-2px);
+  background: linear-gradient(135deg, #ff4d6d 0%, #e1002b 100%);
+  box-shadow: 0 0 28px rgba(255, 26, 64, 0.6);
+}
+
+.btn-ghost-primary, .btn-ghost-blue {
+  background: var(--primary-soft);
+  color: var(--primary);
+  border: 1px solid var(--border-primary);
+  transition: all 0.2s ease;
+}
+
+.btn-ghost-primary:hover, .btn-ghost-blue:hover {
+  background: rgba(255, 26, 64, 0.22);
+  box-shadow: 0 0 16px var(--primary-glow);
+  color: #fff;
+}
+
+/* Status Pulsing Indicators */
+.pulse-dot-primary, .pulse-dot-blue, .pulse-dot-red {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ff1a40;
+  box-shadow: 0 0 10px #ff1a40;
+  animation: pulseRed 2s infinite;
+}
+
+@keyframes pulseRed {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(1.3); }
+}
