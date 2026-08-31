@@ -16,6 +16,10 @@ dist/
 .vscode/
 .idea/
 
+# Executables & Installer Binaries
+*.exe
+gwen.obj
+
 # Storage & Secrets
 backend/storage/
 *.db
