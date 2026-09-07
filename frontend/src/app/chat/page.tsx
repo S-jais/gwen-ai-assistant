@@ -22,9 +22,85 @@ import {
   ExternalLink,
   ChevronRight,
   BookOpen,
+  Copy,
+  Check,
+  RotateCcw,
+  ArrowDown,
+  Compass,
+  Terminal,
+  Globe,
+  FileSearch,
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { Conversation, Message, DocumentItem, AgentStreamEvent } from '@/types';
+
+// CodeBlock Component with Copy Button & Language Badge
+function CodeBlock({ language, value }: { language: string; value: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(value);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="my-3 rounded-xl border border-[#ff1a40]/30 bg-[#0a0d14] overflow-hidden shadow-md">
+      <div className="flex items-center justify-between px-3.5 py-1.5 bg-[#121624] border-b border-[#ff1a40]/20 text-xs font-mono">
+        <span className="text-[#ff1a40] font-semibold text-[11px] uppercase tracking-wider">
+          {language || 'code'}
+        </span>
+        <button
+          onClick={handleCopy}
+          className="flex items-center gap-1 px-2 py-0.5 rounded text-[11px] text-[#94a3b8] hover:text-white hover:bg-[#1a2032] transition-colors"
+        >
+          {copied ? (
+            <>
+              <Check className="w-3 h-3 text-emerald-400" />
+              <span className="text-emerald-400 font-semibold">Copied!</span>
+            </>
+          ) : (
+            <>
+              <Copy className="w-3 h-3 text-[#ff1a40]" />
+              <span>Copy</span>
+            </>
+          )}
+        </button>
+      </div>
+      <pre className="p-4 overflow-x-auto text-xs font-mono text-[#e2e8f0] leading-relaxed">
+        <code>{value}</code>
+      </pre>
+    </div>
+  );
+}
+
+// Quick Prompt Starters for empty state
+const PROMPT_STARTERS = [
+  {
+    icon: Globe,
+    title: 'Web & Tech Research',
+    prompt: 'Research the latest developments in Multi-Agent AI Architecture and summarize key findings.',
+    color: 'from-blue-500/20 to-cyan-500/20 border-blue-500/30 text-blue-400',
+  },
+  {
+    icon: FileSearch,
+    title: 'Document Analysis & RAG',
+    prompt: 'Analyze all indexed documents and summarize the main topics and key insights.',
+    color: 'from-emerald-500/20 to-teal-500/20 border-emerald-500/30 text-emerald-400',
+  },
+  {
+    icon: Terminal,
+    title: 'Code Generation & Review',
+    prompt: 'Write a Python FastAPI service with JWT authentication, async SQLite database, and clean route handlers.',
+    color: 'from-purple-500/20 to-pink-500/20 border-purple-500/30 text-purple-400',
+  },
+  {
+    icon: ListTodo,
+    title: 'Task Decomposition Roadmap',
+    prompt: 'Create a step-by-step implementation roadmap for deploying a full-stack AI web application.',
+    color: 'from-amber-500/20 to-orange-500/20 border-amber-500/30 text-amber-400',
+  },
+];
 
 function ChatPageContent() {
   const searchParams = useSearchParams();
@@ -38,8 +114,12 @@ function ChatPageContent() {
   const [selectedDocIds, setSelectedDocIds] = useState<string[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [activeEvents, setActiveEvents] = useState<AgentStreamEvent[]>([]);
+  const [copiedMsgId, setCopiedMsgId] = useState<string | null>(null);
+  const [showScrollBottom, setShowScrollBottom] = useState(false);
+  const [mobileSessionsOpen, setMobileSessionsOpen] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Load conversations & docs
   useEffect(() => {
@@ -79,9 +159,21 @@ function ChatPageContent() {
   }, [activeConvId]);
 
   // Scroll to bottom
+  const scrollToBottom = (smooth = true) => {
+    messagesEndRef.current?.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto' });
+  };
+
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    scrollToBottom();
   }, [messages, activeEvents]);
+
+  // Track scroll position to show "Scroll to bottom" button
+  const handleScroll = () => {
+    if (!scrollContainerRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
+    const isFarUp = scrollHeight - scrollTop - clientHeight > 150;
+    setShowScrollBottom(isFarUp);
+  };
 
   const handleNewConversation = async () => {
     try {
@@ -89,6 +181,7 @@ function ChatPageContent() {
       setConversations([newConv, ...conversations]);
       setActiveConvId(newConv.id);
       setMessages([]);
+      setMobileSessionsOpen(false);
     } catch (err) {
       console.error(err);
     }
@@ -108,11 +201,9 @@ function ChatPageContent() {
     }
   };
 
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || isStreaming) return;
+  const triggerChat = async (userText: string) => {
+    if (!userText.trim() || isStreaming) return;
 
-    const userText = input.trim();
     setInput('');
     setIsStreaming(true);
     setActiveEvents([]);
@@ -178,9 +269,99 @@ function ChatPageContent() {
     );
   };
 
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    triggerChat(input);
+  };
+
+  const handleCopyMessage = (msgId: string, content: string) => {
+    navigator.clipboard.writeText(content);
+    setCopiedMsgId(msgId);
+    setTimeout(() => setCopiedMsgId(null), 2000);
+  };
+
+  const handleRegenerate = () => {
+    const lastUserMsg = [...messages].reverse().find((m) => m.role === 'user');
+    if (lastUserMsg) {
+      triggerChat(lastUserMsg.content);
+    }
+  };
+
+  const activeTitle = conversations.find((c) => c.id === activeConvId)?.title || 'New Session';
+
   return (
-    <div className="flex h-[calc(100vh-4rem)] max-w-7xl mx-auto w-full gap-4">
-      {/* Left Conversations Sidebar */}
+    <div className="flex h-[calc(100dvh-5.5rem)] md:h-[calc(100vh-4rem)] max-w-7xl mx-auto w-full gap-4 relative">
+      {/* Mobile Sessions Drawer Overlay */}
+      {mobileSessionsOpen && (
+        <div className="md:hidden fixed inset-0 bg-black/80 backdrop-blur-md z-40 flex flex-col p-4">
+          <div className="flex items-center justify-between pb-3 border-b border-[#ff1a40]/30">
+            <span className="font-['Outfit'] font-bold text-white text-base">Chat Sessions</span>
+            <button
+              onClick={() => setMobileSessionsOpen(false)}
+              className="p-1.5 text-[#94a3b8] hover:text-white rounded-lg bg-white/5"
+            >
+              ✕
+            </button>
+          </div>
+
+          <button
+            onClick={handleNewConversation}
+            className="w-full mt-3 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl btn-ghost-primary font-['Space_Grotesk'] text-xs font-semibold uppercase tracking-wider"
+          >
+            <Plus className="w-4 h-4 text-[#ff1a40]" />
+            <span>New Chat Session</span>
+          </button>
+
+          <div className="space-y-2 mt-4 overflow-y-auto flex-1">
+            {conversations.map((conv) => (
+              <div
+                key={conv.id}
+                onClick={() => {
+                  setActiveConvId(conv.id);
+                  setMobileSessionsOpen(false);
+                }}
+                className={`p-3 rounded-xl flex items-center justify-between text-xs border ${
+                  conv.id === activeConvId
+                    ? 'bg-[#141823] border-[#ff1a40]/60 text-white'
+                    : 'bg-[#0d1017] border-[#1e2333] text-[#94a3b8]'
+                }`}
+              >
+                <span className="truncate">{conv.title}</span>
+                <button
+                  onClick={(e) => handleDeleteConversation(conv.id, e)}
+                  className="p-1 text-[#64748b] hover:text-[#ff1a40]"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+
+          {documents.length > 0 && (
+            <div className="pt-3 border-t border-[#1e2333] text-xs">
+              <span className="font-mono text-[#ff1a40] mb-1.5 block">Search Documents:</span>
+              <select
+                className="w-full bg-[#161925] border border-[#2a3045] rounded-lg p-2 text-white text-xs"
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === 'all') setSelectedDocIds(documents.map((d) => d.id));
+                  else if (val) setSelectedDocIds([val]);
+                  else setSelectedDocIds([]);
+                }}
+              >
+                <option value="">Search all indexed docs</option>
+                {documents.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.original_name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Left Conversations Sidebar (Desktop) */}
       <div className="w-72 bg-[#07090e]/85 backdrop-blur-2xl border border-[#ff1a40]/20 rounded-2xl flex flex-col justify-between p-3.5 hidden md:flex shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
         <div>
           <button
@@ -220,7 +401,7 @@ function ChatPageContent() {
         {/* Attached Document Filter */}
         {documents.length > 0 && (
           <div className="p-3 bg-[#0d1017]/90 rounded-xl border border-[#ff1a40]/20 text-xs">
-            <span className="font-mono text-[#ff1a40] block mb-1.5 flex items-center gap-1">
+            <span className="font-mono text-[#ff1a40] mb-1.5 flex items-center gap-1">
               <BookOpen className="w-3.5 h-3.5 text-[#ff1a40]" />
               Attach Notes/Docs ({documents.length})
             </span>
@@ -245,24 +426,74 @@ function ChatPageContent() {
       </div>
 
       {/* Main Chat Flow */}
-      <div className="flex-1 bg-[#07090e]/85 backdrop-blur-2xl border border-[#ff1a40]/20 rounded-2xl flex flex-col overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
+      <div className="flex-1 bg-[#07090e]/85 backdrop-blur-2xl border border-[#ff1a40]/20 rounded-2xl flex flex-col overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.5)] relative">
+        {/* Mobile Top Sessions Bar */}
+        <div className="md:hidden flex items-center justify-between px-4 py-2.5 bg-[#0d1017] border-b border-[#ff1a40]/20 text-xs">
+          <button
+            onClick={() => setMobileSessionsOpen(true)}
+            className="flex items-center gap-1.5 text-[#f8fafc] font-medium truncate max-w-[200px]"
+          >
+            <span className="w-2 h-2 rounded-full bg-[#ff1a40]" />
+            <span className="truncate">{activeTitle}</span>
+            <span className="text-[10px] text-[#ff1a40] font-mono">▼</span>
+          </button>
+          <button
+            onClick={handleNewConversation}
+            className="px-2.5 py-1 rounded-lg bg-[#ff1a40]/15 text-[#ff1a40] font-mono text-[11px] border border-[#ff1a40]/30"
+          >
+            + New
+          </button>
+        </div>
+
         {/* Chat Messages Stream */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div
+          ref={scrollContainerRef}
+          onScroll={handleScroll}
+          className="flex-1 overflow-y-auto p-3.5 sm:p-6 space-y-4 sm:space-y-6"
+        >
           {messages.length === 0 && !isStreaming ? (
-            <div className="h-full flex flex-col items-center justify-center text-center space-y-4 max-w-md mx-auto my-auto">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#ff1a40]/20 to-[#cc002b]/20 border border-[#ff1a40]/40 flex items-center justify-center shadow-[0_0_25px_rgba(255,26,64,0.25)]">
-                <Zap className="w-7 h-7 text-[#ff1a40]" />
+            <div className="h-full flex flex-col items-center justify-center text-center space-y-6 max-w-2xl mx-auto my-auto py-8">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#ff1a40]/20 to-[#cc002b]/20 border border-[#ff1a40]/40 flex items-center justify-center shadow-[0_0_25px_rgba(255,26,64,0.25)]">
+                <Zap className="w-8 h-8 text-[#ff1a40]" />
               </div>
-              <h3 className="font-['Outfit'] font-bold text-xl text-white">GWEN Multi-Agent Session</h3>
-              <p className="text-xs text-[#94a3b8] font-['Space_Grotesk'] leading-relaxed">
-                Give GWEN a complex task. The Manager Agent will analyze requirements and automatically dispatch the Document, Research, Planner, and Coding agents.
-              </p>
+              <div className="space-y-2">
+                <h3 className="font-['Outfit'] font-bold text-2xl text-white">GWEN Multi-Agent Orchestrator</h3>
+                <p className="text-xs text-[#94a3b8] font-['Space_Grotesk'] max-w-lg leading-relaxed">
+                  Select a prompt starter below or submit custom instructions. The GWEN Manager automatically coordinates Research, Document RAG, Code Execution, and Task Planning agents.
+                </p>
+              </div>
+
+              {/* Prompt Starter Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 w-full text-left pt-2">
+                {PROMPT_STARTERS.map((ps, idx) => {
+                  const IconComp = ps.icon;
+                  return (
+                    <button
+                      key={idx}
+                      onClick={() => triggerChat(ps.prompt)}
+                      className={`p-4 rounded-xl bg-[#0d1017]/90 border hover:border-[#ff1a40]/60 transition-all text-xs group flex flex-col justify-between space-y-2 shadow-lg hover:shadow-[0_0_15px_rgba(255,26,64,0.15)]`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className={`p-2 rounded-lg bg-gradient-to-br ${ps.color} border`}>
+                          <IconComp className="w-4 h-4" />
+                        </div>
+                        <span className="font-['Space_Grotesk'] font-bold text-white group-hover:text-[#ff1a40] transition-colors">
+                          {ps.title}
+                        </span>
+                      </div>
+                      <p className="text-[#94a3b8] text-[11px] line-clamp-2 font-['Space_Grotesk']">
+                        {ps.prompt}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           ) : (
             messages.map((msg) => {
               const isUser = msg.role === 'user';
               return (
-                <div key={msg.id} className={`flex gap-4 ${isUser ? 'justify-end' : 'justify-start'}`}>
+                <div key={msg.id} className={`flex gap-4 ${isUser ? 'justify-end' : 'justify-start'} group`}>
                   {!isUser && (
                     <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#ff1a40] to-[#cc002b] p-[1.5px] shrink-0 mt-1 shadow-[0_0_12px_rgba(255,26,64,0.4)]">
                       <div className="w-full h-full bg-[#030407] rounded-[6px] flex items-center justify-center">
@@ -272,7 +503,7 @@ function ChatPageContent() {
                   )}
 
                   <div
-                    className={`max-w-3xl rounded-2xl p-5 text-sm space-y-3 ${
+                    className={`max-w-3xl rounded-2xl p-5 text-sm space-y-3 relative ${
                       isUser
                         ? 'bg-gradient-to-r from-[#ff1a40]/20 to-[#cc002b]/15 border border-[#ff1a40]/35 text-white ml-12 shadow-[0_0_15px_rgba(255,26,64,0.15)]'
                         : 'bg-[#0d1017]/90 border border-[#ff1a40]/20 text-[#f8fafc] shadow-lg'
@@ -292,14 +523,34 @@ function ChatPageContent() {
                       </div>
                     )}
 
+                    {/* Markdown Content Render with CodeBlock */}
                     <div className="prose prose-invert max-w-none text-sm leading-relaxed prose-headings:font-['Outfit'] prose-headings:text-white prose-headings:font-semibold prose-a:text-[#ff1a40] prose-code:font-mono prose-code:bg-[#161925] prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:border prose-code:border-[#ff1a40]/20">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                          code({ node, inline, className, children, ...props }: any) {
+                            const match = /language-(\w+)/.exec(className || '');
+                            return !inline && match ? (
+                              <CodeBlock
+                                language={match[1]}
+                                value={String(children).replace(/\n$/, '')}
+                              />
+                            ) : (
+                              <code className={className} {...props}>
+                                {children}
+                              </code>
+                            );
+                          },
+                        }}
+                      >
+                        {msg.content}
+                      </ReactMarkdown>
                     </div>
 
                     {/* Citations / Sources */}
                     {msg.metadata_json?.citations && msg.metadata_json.citations.length > 0 && (
                       <div className="mt-4 pt-3 border-t border-[#1e2333] space-y-1.5">
-                        <span className="text-[11px] font-mono text-[#ff1a40] block flex items-center gap-1">
+                        <span className="text-[11px] font-mono text-[#ff1a40] mb-1 flex items-center gap-1">
                           <FileText className="w-3 h-3 text-[#ff1a40]" />
                           Document Page Citations:
                         </span>
@@ -318,7 +569,7 @@ function ChatPageContent() {
                     {/* Web Sources */}
                     {msg.metadata_json?.sources && msg.metadata_json.sources.length > 0 && (
                       <div className="mt-3 pt-3 border-t border-[#1e2333] space-y-1">
-                        <span className="text-[11px] font-mono text-[#ff1a40] block flex items-center gap-1">
+                        <span className="text-[11px] font-mono text-[#ff1a40] mb-1 flex items-center gap-1">
                           <Search className="w-3 h-3 text-[#ff1a40]" />
                           Web Research Sources:
                         </span>
@@ -336,6 +587,36 @@ function ChatPageContent() {
                             </a>
                           ))}
                         </div>
+                      </div>
+                    )}
+
+                    {/* Response Toolbar Actions (Copy & Regenerate) */}
+                    {!isUser && (
+                      <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#1e2333]/50 text-xs">
+                        <button
+                          onClick={() => handleCopyMessage(msg.id, msg.content)}
+                          className="flex items-center gap-1 px-2 py-1 rounded-md text-[#94a3b8] hover:text-white hover:bg-[#161925] transition-colors font-['Space_Grotesk'] text-[11px]"
+                        >
+                          {copiedMsgId === msg.id ? (
+                            <>
+                              <Check className="w-3 h-3 text-emerald-400" />
+                              <span className="text-emerald-400">Copied</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-3 h-3 text-[#ff1a40]" />
+                              <span>Copy Response</span>
+                            </>
+                          )}
+                        </button>
+                        <button
+                          onClick={handleRegenerate}
+                          disabled={isStreaming}
+                          className="flex items-center gap-1 px-2 py-1 rounded-md text-[#94a3b8] hover:text-[#ff1a40] hover:bg-[#161925] transition-colors font-['Space_Grotesk'] text-[11px] disabled:opacity-50"
+                        >
+                          <RotateCcw className="w-3 h-3 text-[#ff1a40]" />
+                          <span>Retry</span>
+                        </button>
                       </div>
                     )}
                   </div>
@@ -382,6 +663,16 @@ function ChatPageContent() {
 
           <div ref={messagesEndRef} />
         </div>
+
+        {/* Scroll to Bottom Button */}
+        {showScrollBottom && (
+          <button
+            onClick={() => scrollToBottom(true)}
+            className="absolute bottom-20 right-6 p-2 rounded-full bg-[#141823] border border-[#ff1a40]/40 text-[#ff1a40] shadow-[0_0_15px_rgba(255,26,64,0.3)] hover:scale-105 transition-all z-10"
+          >
+            <ArrowDown className="w-4 h-4" />
+          </button>
+        )}
 
         {/* Input Bar */}
         <div className="p-4 bg-[#030407]/90 border-t border-[#ff1a40]/20">

@@ -22,21 +22,21 @@ export default function SpiderWebCanvas({
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { alpha: true });
     if (!ctx) return;
 
     let animId: number;
-    let isMobile = window.innerWidth < 768;
+    let isMobile = window.innerWidth < 768 || ('ontouchstart' in window);
 
     const CONFIG = {
-      strandCount: isMobile ? 18 : strandCount,
-      ringCount: isMobile ? 8 : ringCount,
-      baseAlpha: 0.28,
+      strandCount: isMobile ? 12 : strandCount,
+      ringCount: isMobile ? 6 : ringCount,
+      baseAlpha: isMobile ? 0.22 : 0.28,
       driftSpeed: 0.00032,
-      parallaxAmt: isMobile ? 10 : 36,
-      pluckRadius: 220,
-      pluckForce: 38,
-      travelerCount: isMobile ? 6 : travelerCount,
+      parallaxAmt: isMobile ? 8 : 36,
+      pluckRadius: isMobile ? 120 : 220,
+      pluckForce: isMobile ? 18 : 38,
+      travelerCount: isMobile ? 3 : travelerCount,
       primaryHex: primaryColor,
       glowHex: glowColor,
     };
@@ -116,8 +116,9 @@ export default function SpiderWebCanvas({
 
     function resize() {
       if (!canvas) return;
-      isMobile = window.innerWidth < 768;
-      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      isMobile = window.innerWidth < 768 || ('ontouchstart' in window);
+      // On mobile, cap DPR strictly to 1 to reduce pixel fill-rate by 4x to 9x
+      dpr = isMobile ? 1 : Math.min(window.devicePixelRatio || 1, 2);
       w = canvas.width = Math.floor(window.innerWidth * dpr);
       h = canvas.height = Math.floor(window.innerHeight * dpr);
       canvas.style.width = `${window.innerWidth}px`;
@@ -139,31 +140,40 @@ export default function SpiderWebCanvas({
       const baseX = cx + Math.cos(angle) * r;
       const baseY = cy + Math.sin(angle) * r;
 
-      // Interactive Silk Plucking / Cursor Tension
-      const dx = baseX - pointer.x;
-      const dy = baseY - pointer.y;
-      const dist = Math.hypot(dx, dy);
-      const influence = Math.max(0, 1 - dist / (CONFIG.pluckRadius * dpr));
+      if (!isMobile) {
+        // Interactive Silk Plucking / Cursor Tension only on desktop to save mobile CPU
+        const dx = baseX - pointer.x;
+        const dy = baseY - pointer.y;
+        const dist = Math.hypot(dx, dy);
+        const influence = Math.max(0, 1 - dist / (CONFIG.pluckRadius * dpr));
 
-      if (influence > 0) {
-        const tensionPush = influence * influence * CONFIG.pluckForce * dpr;
-        r += tensionPush;
+        if (influence > 0) {
+          const tensionPush = influence * influence * CONFIG.pluckForce * dpr;
+          r += tensionPush;
 
-        if (Math.hypot(pointer.vx, pointer.vy) > 8 && Math.random() < 0.03) {
-          wob.tensionVelocity += (Math.random() - 0.5) * 14;
+          if (Math.hypot(pointer.vx, pointer.vy) > 8 && Math.random() < 0.03) {
+            wob.tensionVelocity += (Math.random() - 0.5) * 14;
+          }
         }
-      }
 
-      // Spring physics
-      wob.tensionOffset += wob.tensionVelocity;
-      wob.tensionVelocity -= wob.tensionOffset * 0.12;
-      wob.tensionVelocity *= 0.88;
+        // Spring physics
+        wob.tensionOffset += wob.tensionVelocity;
+        wob.tensionVelocity -= wob.tensionOffset * 0.12;
+        wob.tensionVelocity *= 0.88;
+
+        return {
+          x: cx + Math.cos(angle) * r,
+          y: cy + Math.sin(angle) * r,
+          dist,
+          influence,
+        };
+      }
 
       return {
         x: cx + Math.cos(angle) * r,
         y: cy + Math.sin(angle) * r,
-        dist,
-        influence,
+        dist: 0,
+        influence: 0,
       };
     }
 
@@ -191,14 +201,17 @@ export default function SpiderWebCanvas({
             ctx.lineTo(pt.x, pt.y);
           }
 
-          const endX = cx + Math.cos(strandAngles[s]) * maxR;
-          const endY = cy + Math.sin(strandAngles[s]) * maxR;
-          const grad = ctx.createLinearGradient(cx, cy, endX, endY);
-          grad.addColorStop(0, `rgba(255, 26, 64, ${alpha * 1.4})`);
-          grad.addColorStop(0.65, `rgba(255, 26, 64, ${alpha * 0.75})`);
-          grad.addColorStop(1, 'rgba(180, 0, 40, 0)');
-
-          ctx.strokeStyle = grad;
+          if (isMobile) {
+            ctx.strokeStyle = `rgba(255, 26, 64, ${alpha * 0.85})`;
+          } else {
+            const endX = cx + Math.cos(strandAngles[s]) * maxR;
+            const endY = cy + Math.sin(strandAngles[s]) * maxR;
+            const grad = ctx.createLinearGradient(cx, cy, endX, endY);
+            grad.addColorStop(0, `rgba(255, 26, 64, ${alpha * 1.4})`);
+            grad.addColorStop(0.65, `rgba(255, 26, 64, ${alpha * 0.75})`);
+            grad.addColorStop(1, 'rgba(180, 0, 40, 0)');
+            ctx.strokeStyle = grad;
+          }
           ctx.lineWidth = 1.0 * dpr * 0.75;
           ctx.stroke();
         }
@@ -216,17 +229,21 @@ export default function SpiderWebCanvas({
           const ringRatio = r / CONFIG.ringCount;
           const ringFade = 1 - ringRatio * 0.5;
 
-          const strokeGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, maxR);
-          strokeGrad.addColorStop(0, `rgba(255, 26, 64, ${alpha * ringFade * 0.95})`);
-          strokeGrad.addColorStop(0.5, `rgba(255, 77, 109, ${alpha * ringFade * 0.8})`);
-          strokeGrad.addColorStop(1, `rgba(204, 0, 43, ${alpha * ringFade * 0.6})`);
+          if (isMobile) {
+            ctx.strokeStyle = `rgba(255, 26, 64, ${alpha * ringFade * 0.75})`;
+          } else {
+            const strokeGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, maxR);
+            strokeGrad.addColorStop(0, `rgba(255, 26, 64, ${alpha * ringFade * 0.95})`);
+            strokeGrad.addColorStop(0.5, `rgba(255, 77, 109, ${alpha * ringFade * 0.8})`);
+            strokeGrad.addColorStop(1, `rgba(204, 0, 43, ${alpha * ringFade * 0.6})`);
+            ctx.strokeStyle = strokeGrad;
+          }
 
-          ctx.strokeStyle = strokeGrad;
           ctx.lineWidth = 0.9 * dpr * 0.75;
           ctx.stroke();
         }
 
-        // 3. Glowing Bio-Luminescent Junction Dew Drops (#ff1a40 Red Nodes)
+        // 3. Junction Dew Drops (#ff1a40 Red Nodes) - strictly NO shadowBlur on mobile
         ctx.save();
         for (let s = 0; s < CONFIG.strandCount; s += 2) {
           for (let r = 1; r < CONFIG.ringCount; r += 2) {
@@ -238,8 +255,10 @@ export default function SpiderWebCanvas({
 
             ctx.beginPath();
             ctx.fillStyle = `rgba(255, 26, 64, ${nodeAlpha})`;
-            ctx.shadowColor = '#ff1a40';
-            ctx.shadowBlur = 10 * dpr * (0.6 + pulse * 0.8);
+            if (!isMobile) {
+              ctx.shadowColor = '#ff1a40';
+              ctx.shadowBlur = 10 * dpr * (0.6 + pulse * 0.8);
+            }
             ctx.arc(pt.x, pt.y, (1.3 + pulse * 0.7) * dpr, 0, Math.PI * 2);
             ctx.fill();
           }
@@ -270,52 +289,62 @@ export default function SpiderWebCanvas({
 
           ctx.beginPath();
           ctx.fillStyle = `${tr.color}${pulseAlpha})`;
-          ctx.shadowColor = tr.glow;
-          ctx.shadowBlur = 14 * dpr;
+          if (!isMobile) {
+            ctx.shadowColor = tr.glow;
+            ctx.shadowBlur = 14 * dpr;
+          }
           ctx.arc(px, py, tr.size * dpr, 0, Math.PI * 2);
           ctx.fill();
         });
         ctx.restore();
 
-        // 5. Central Arachnid Core Glow / Vortex
-        const coreGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 280 * dpr);
-        coreGrad.addColorStop(0, `rgba(255, 26, 64, ${0.14 * depth})`);
-        coreGrad.addColorStop(0.4, `rgba(255, 26, 64, ${0.06 * depth})`);
-        coreGrad.addColorStop(1, 'transparent');
-        ctx.fillStyle = coreGrad;
-        ctx.beginPath();
-        ctx.arc(cx, cy, 280 * dpr, 0, Math.PI * 2);
-        ctx.fill();
+        // 5. Central Arachnid Core Glow / Vortex (Simplified on mobile)
+        if (!isMobile) {
+          const coreGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 280 * dpr);
+          coreGrad.addColorStop(0, `rgba(255, 26, 64, ${0.14 * depth})`);
+          coreGrad.addColorStop(0.4, `rgba(255, 26, 64, ${0.06 * depth})`);
+          coreGrad.addColorStop(1, 'transparent');
+          ctx.fillStyle = coreGrad;
+          ctx.beginPath();
+          ctx.arc(cx, cy, 280 * dpr, 0, Math.PI * 2);
+          ctx.fill();
+        }
       }
 
       ctx.restore();
     }
 
+    let lastFrameTime = 0;
+    const targetInterval = isMobile ? 1000 / 30 : 1000 / 60; // 30 FPS on mobile, 60 FPS on desktop
+
     function loop(time: number) {
-      pointer.vx = (pointer.tx * w - pointer.x) * 0.08;
-      pointer.vy = (pointer.ty * h - pointer.y) * 0.08;
-      pointer.x += pointer.vx;
-      pointer.y += pointer.vy;
+      animId = requestAnimationFrame(loop);
+
+      // Skip rendering if browser tab or phone is hidden
+      if (document.hidden) return;
+
+      const delta = time - lastFrameTime;
+      if (delta < targetInterval) return;
+      lastFrameTime = time - (delta % targetInterval);
+
+      if (!isMobile) {
+        pointer.vx = (pointer.tx * w - pointer.x) * 0.08;
+        pointer.vy = (pointer.ty * h - pointer.y) * 0.08;
+        pointer.x += pointer.vx;
+        pointer.y += pointer.vy;
+      }
 
       draw(time || 0);
-      animId = requestAnimationFrame(loop);
     }
 
     const onMouseMove = (e: MouseEvent) => {
+      if (isMobile) return;
       pointer.tx = e.clientX / window.innerWidth;
       pointer.ty = e.clientY / window.innerHeight;
     };
 
-    const onTouchMove = (e: TouchEvent) => {
-      if (e.touches[0]) {
-        pointer.tx = e.touches[0].clientX / window.innerWidth;
-        pointer.ty = e.touches[0].clientY / window.innerHeight;
-      }
-    };
-
     window.addEventListener('resize', resize, { passive: true });
     window.addEventListener('mousemove', onMouseMove, { passive: true });
-    window.addEventListener('touchmove', onTouchMove, { passive: true });
 
     resize();
     animId = requestAnimationFrame(loop);
@@ -324,7 +353,6 @@ export default function SpiderWebCanvas({
       cancelAnimationFrame(animId);
       window.removeEventListener('resize', resize);
       window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('touchmove', onTouchMove);
     };
   }, [primaryColor, glowColor, strandCount, ringCount, travelerCount]);
 

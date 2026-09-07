@@ -16,6 +16,79 @@ import {
 import { api } from '@/lib/api';
 import { AgentInfo } from '@/types';
 
+const defaultAgentsList: AgentInfo[] = [
+  {
+    name: 'Manager Agent',
+    display_name: 'GWEN Orchestrator',
+    role: 'Central Task Decomposition & Orchestration Engine',
+    description: 'Understands user intent, decides agent workflow, delegates to specialized agents, and synthesizes unified responses.',
+    capabilities: [
+      'Intent classification & routing',
+      'Multi-step task decomposition',
+      'Agent response synthesis',
+    ],
+    tools: ['search_memory', 'save_memory'],
+    status: 'idle',
+    execution_count: 0,
+  },
+  {
+    name: 'Document Agent',
+    display_name: 'Document Vault Analyst',
+    role: 'Deep Semantic Analysis & Citation Retrieval',
+    description: 'Searches through uploaded PDFs, notes, and documents to extract precise excerpts and answer context queries.',
+    capabilities: [
+      'PDF & Markdown text extraction',
+      'ChromaDB vector chunk search',
+      'Context-aware citation generation',
+    ],
+    tools: ['search_documents'],
+    status: 'idle',
+    execution_count: 0,
+  },
+  {
+    name: 'Research Agent',
+    display_name: 'Web Research & Intelligence Specialist',
+    role: 'Autonomous Web Research & Source Extraction',
+    description: 'Queries live web search engines, inspects documentation, and gathers up-to-date facts and citations.',
+    capabilities: [
+      'Live web search & fact retrieval',
+      'Webpage text scraping & parsing',
+      'Source citation synthesis',
+    ],
+    tools: ['web_search', 'fetch_webpage'],
+    status: 'idle',
+    execution_count: 0,
+  },
+  {
+    name: 'Planner Agent',
+    display_name: 'Task Scheduler & Routine Planner',
+    role: 'Structured Study Schedule & Action Item Generation',
+    description: 'Decomposes high-level goals into multi-day execution plans, study tasks, and manageable action items.',
+    capabilities: [
+      'Multi-day study roadmap creation',
+      'Task priority & deadline assignment',
+      'Kanban task board synchronization',
+    ],
+    tools: ['create_task', 'get_tasks', 'update_task'],
+    status: 'idle',
+    execution_count: 0,
+  },
+  {
+    name: 'Coding Agent',
+    display_name: 'Software & Code Engineering Specialist',
+    role: 'Code Generation, Refactoring & Debugging Engine',
+    description: 'Writes, reviews, and debugs code across Python, TypeScript, SQL, and shell scripts.',
+    capabilities: [
+      'FastAPI & React code generation',
+      'Syntax error & logic diagnosis',
+      'Architecture & refactoring support',
+    ],
+    tools: ['analyze_code'],
+    status: 'idle',
+    execution_count: 0,
+  },
+];
+
 export default function AgentsPage() {
   const router = useRouter();
   const [agents, setAgents] = useState<AgentInfo[]>([]);
@@ -23,10 +96,16 @@ export default function AgentsPage() {
 
   useEffect(() => {
     api.getAgents()
-      .then(setAgents)
-      .catch(console.error)
+      .then((res) => {
+        if (Array.isArray(res) && res.length > 0) {
+          setAgents(res);
+        }
+      })
+      .catch((err) => console.warn('Using default agents layout:', err))
       .finally(() => setLoading(false));
   }, []);
+
+  const displayAgents = agents.length > 0 ? agents : defaultAgentsList;
 
   const getAgentTheme = (name: string) => {
     switch (name) {
@@ -106,14 +185,14 @@ export default function AgentsPage() {
             Specialized <span className="glow-text-duo">AI Agents</span>
           </h1>
           <p className="text-sm font-['Space_Grotesk'] text-[#94a3b8] mt-1">
-            Modular, capability-restricted local agents orchestrated by GWEN Manager.
+            Modular, capability-restricted agents orchestrated by GWEN Manager.
           </p>
         </div>
       </div>
 
       {/* Agents Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {agents.map((agent) => {
+        {displayAgents.map((agent) => {
           const theme = getAgentTheme(agent.name);
           const Icon = theme.icon;
           return (

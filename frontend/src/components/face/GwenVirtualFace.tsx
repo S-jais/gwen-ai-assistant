@@ -17,7 +17,14 @@ import {
   Maximize2,
   User,
   Loader2,
+  Mic,
+  MicOff,
+  Globe2,
+  Languages,
+  MessageSquare,
+  Send,
 } from 'lucide-react';
+import { api } from '@/lib/api';
 
 interface GwenVirtualFaceProps {
   onPromptSelect?: (prompt: string) => void;
@@ -59,6 +66,14 @@ export default function GwenVirtualFace({ onPromptSelect }: GwenVirtualFaceProps
   const [modelLoading, setModelLoading] = useState(true);
   const [loadProgress, setLoadProgress] = useState(0);
 
+  // Voice Control & Speech Recognition States (Hindi + English)
+  const [isListening, setIsListening] = useState(false);
+  const [selectedLanguage, setSelectedLanguage] = useState<'en-IN' | 'hi-IN' | 'auto'>('auto');
+  const [liveTranscript, setLiveTranscript] = useState('');
+  const [isProcessingQuery, setIsProcessingQuery] = useState(false);
+
+  const recognitionRef = useRef<any>(null);
+
   // References for Three.js state
   const isSpeakingRef = useRef(false);
   isSpeakingRef.current = isSpeaking;
@@ -66,37 +81,200 @@ export default function GwenVirtualFace({ onPromptSelect }: GwenVirtualFaceProps
   const viewModeRef = useRef<'face' | 'full'>('face');
   viewModeRef.current = viewMode;
 
-  // Audio speech synthesis
-  const speakGreeting = useCallback((customText?: string) => {
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
-    window.speechSynthesis.cancel();
+  // Human-like Conversational Voice Synthesis (JARVIS / Friendly Companion Persona)
+  const speakText = useCallback(
+    (textToSpeak: string, forcedLang?: string) => {
+      if (typeof window === 'undefined' || !('speechSynthesis' in window) || !soundEnabled) return;
+      window.speechSynthesis.cancel();
 
-    const textToSpeak =
-      customText ||
-      'Hello sir, I am GWEN. Your local first multi agent assistant is ready. How can I help your workflow today?';
+      // Clean up markdown, code snippets, headers, and URLs for natural human speech
+      let cleanText = textToSpeak
+        .replace(/```[\s\S]*?```/g, 'I have generated the code snippet for you.')
+        .replace(/`([^`]+)`/g, '$1')
+        .replace(/[*_#`~>]/g, '')
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+        .replace(/https?:\/\/\S+/g, '')
+        .replace(/<[^>]*>/g, '')
+        .replace(/\[.*?\]/g, '') // Remove [Agent Name] tags
+        .trim();
 
-    const utterance = new SpeechSynthesisUtterance(textToSpeak);
-    utterance.rate = 1.05;
-    utterance.pitch = 1.1;
+      if (!cleanText) return;
 
-    // Pick articulate female voice if available
-    const voices = window.speechSynthesis.getVoices();
-    const gwenVoice =
-      voices.find(
-        (v) =>
-          v.name.includes('Zira') ||
-          v.name.includes('Samantha') ||
-          v.name.includes('Google UK English Female') ||
-          v.name.includes('Female')
-      ) || voices[0];
-    if (gwenVoice) utterance.voice = gwenVoice;
+      // Keep vocal summary clear, natural, and expressive
+      cleanText = cleanText.slice(0, 400);
 
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
+      const utterance = new SpeechSynthesisUtterance(cleanText);
+      utterance.rate = 1.0;
+      utterance.pitch = 1.08; // Warm, articulate pitch
 
-    window.speechSynthesis.speak(utterance);
-  }, []);
+      // Detect Hindi Devanagari script or Hindi phrasing
+      const containsHindi = /[\u0900-\u097F]/.test(cleanText) || forcedLang === 'hi-IN';
+
+      const voices = window.speechSynthesis.getVoices();
+      let matchedVoice = null;
+
+      if (containsHindi) {
+        utterance.lang = 'hi-IN';
+        matchedVoice = voices.find(
+          (v) =>
+            v.lang.includes('hi') ||
+            v.name.includes('Hindi') ||
+            v.name.includes('Google हिन्दी') ||
+            v.name.includes('Swara')
+        );
+      }
+
+      if (!matchedVoice) {
+        utterance.lang = 'en-IN';
+        matchedVoice = voices.find(
+          (v) =>
+            v.name.includes('Zira') ||
+            v.name.includes('Samantha') ||
+            v.name.includes('Google UK English Female') ||
+            v.name.includes('India') ||
+            v.name.includes('Natural') ||
+            v.name.includes('Female')
+        );
+      }
+
+      if (matchedVoice) utterance.voice = matchedVoice;
+
+      utterance.onstart = () => setIsSpeaking(true);
+      utterance.onend = () => setIsSpeaking(false);
+      utterance.onerror = () => setIsSpeaking(false);
+
+      window.speechSynthesis.speak(utterance);
+    },
+    [soundEnabled]
+  );
+
+  const speakGreeting = useCallback(
+    (customText?: string) => {
+      const text =
+        customText ||
+        'At your service, sir. I am GWEN. I can talk to you like a friend in both English and Hindi. What is on your mind today?';
+      speakText(text);
+    },
+    [speakText]
+  );
+
+  // Send Recognized Voice Query & Stream Conversational Voice Response (JARVIS Mode)
+  const handleVoiceQuery = useCallback(
+    async (queryText: string) => {
+      if (!queryText.trim()) return;
+
+      const isHindiQuery = /[\u0900-\u097F]/.test(queryText);
+
+      setIsProcessingQuery(true);
+      setGreetingText(`"${queryText}"`);
+      setSubGreeting(
+        isHindiQuery
+          ? 'जी, आपकी बात समझ गई। उत्तर तैयार कर रही हूँ...'
+          : 'At your service, sir. Processing your request...'
+      );
+
+      // Notify parent component if callback provided
+      if (onPromptSelect) {
+        onPromptSelect(queryText);
+      }
+
+      try {
+        await api.streamChat(
+          { content: queryText },
+          (event) => {
+            // Keep background agent execution silent to maintain human companion feeling
+          },
+          (finalData) => {
+            setIsProcessingQuery(false);
+            const answer = finalData.content || (isHindiQuery ? 'कार्य पूरा हो गया है।' : 'At your service, sir.');
+            setSubGreeting(answer);
+            // Immediately speak the answer out loud like JARVIS / friendly companion
+            speakText(answer);
+          },
+          (err) => {
+            setIsProcessingQuery(false);
+            const errMsg = isHindiQuery
+              ? 'क्षमा करें, सर्वर से संपर्क नहीं हो सका।'
+              : 'Forgive me, sir. I encountered an error connecting to the intelligence core.';
+            setSubGreeting(errMsg);
+            speakText(errMsg);
+          }
+        );
+      } catch (err: any) {
+        setIsProcessingQuery(false);
+        const errMsg = 'Forgive me, sir. I could not complete that request.';
+        setSubGreeting(errMsg);
+        speakText(errMsg);
+      }
+    },
+    [onPromptSelect, speakText]
+  );
+
+  // Toggle Speech Recognition (STT)
+  const toggleSpeechRecognition = () => {
+    if (typeof window === 'undefined') return;
+    const SpeechRecognitionAPI =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognitionAPI) {
+      alert('Speech Recognition is not supported by your browser. Please use Chrome, Edge, or Brave.');
+      return;
+    }
+
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognitionAPI();
+      recognition.continuous = false;
+      recognition.interimResults = true;
+
+      // Set Language Mode
+      if (selectedLanguage === 'hi-IN') {
+        recognition.lang = 'hi-IN';
+      } else if (selectedLanguage === 'en-IN') {
+        recognition.lang = 'en-IN';
+      } else {
+        recognition.lang = 'hi-IN'; // Default auto Hinglish support
+      }
+
+      recognition.onstart = () => {
+        setIsListening(true);
+        setLiveTranscript('Listening to your voice...');
+      };
+
+      recognition.onresult = (event: any) => {
+        let currentTranscript = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          currentTranscript += event.results[i][0].transcript;
+        }
+        setLiveTranscript(currentTranscript);
+      };
+
+      recognition.onerror = (event: any) => {
+        console.error('Speech recognition error:', event.error);
+        setIsListening(false);
+        setLiveTranscript('');
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+        if (liveTranscript && liveTranscript !== 'Listening to your voice...') {
+          handleVoiceQuery(liveTranscript);
+        }
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+    } catch (err) {
+      console.error('Error starting speech recognition:', err);
+      setIsListening(false);
+    }
+  };
+
 
   const handleModeChange = (mode: 'manager' | 'rag' | 'research' | 'planner' | 'coder') => {
     setCurrentMode(mode);
@@ -164,13 +342,14 @@ export default function GwenVirtualFace({ onPromptSelect }: GwenVirtualFaceProps
     const currentCamPos = HEAD_CAM_POS.clone();
 
     // WebGL Renderer
+    const isMobileDevice = window.innerWidth < 768 || ('ontouchstart' in window);
     const renderer = new THREE.WebGLRenderer({
       canvas,
       alpha: true,
-      antialias: true,
+      antialias: !isMobileDevice,
       powerPreference: 'high-performance',
     });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setPixelRatio(isMobileDevice ? 1 : Math.min(window.devicePixelRatio || 1, 2));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
 
     const resize = () => {
@@ -183,6 +362,19 @@ export default function GwenVirtualFace({ onPromptSelect }: GwenVirtualFaceProps
     };
     resize();
     window.addEventListener('resize', resize);
+
+    // Visibility Observer to pause 3D rendering when scrolled out of view on mobile
+    let isVisible = true;
+    let observer: IntersectionObserver | null = null;
+    if (typeof IntersectionObserver !== 'undefined' && containerRef.current) {
+      observer = new IntersectionObserver(
+        (entries) => {
+          if (entries[0]) isVisible = entries[0].isIntersecting;
+        },
+        { threshold: 0.05 }
+      );
+      observer.observe(containerRef.current);
+    }
 
     // Root Hologram Pivot Group for interactive rotation
     const avatarGroup = new THREE.Group();
@@ -274,8 +466,6 @@ export default function GwenVirtualFace({ onPromptSelect }: GwenVirtualFaceProps
     avatarGroup.add(eyesGroup);
 
     const eyeGeo = new THREE.BufferGeometry();
-    // Normalized eye positions on Gwen's face:
-    // Left eye ~ (-0.95, 3.65, 0.53), Right eye ~ (-0.48, 3.63, 0.51)
     const eyeVertices = new Float32Array([
       -0.95, 3.65, 0.53,
       -0.48, 3.63, 0.51,
@@ -293,54 +483,42 @@ export default function GwenVirtualFace({ onPromptSelect }: GwenVirtualFaceProps
     const eyesMesh = new THREE.Points(eyeGeo, eyesMat);
     eyesGroup.add(eyesMesh);
 
-    // 5. Orbital Gyroscopic Gimbal Rings (Adaptive positioning)
+    // 5. Orbital Gyroscopic Gimbal Rings
     const ringGroup = new THREE.Group();
-    scene.add(ringGroup);
+    if (!isMobileDevice) {
+      scene.add(ringGroup);
 
-    // Primary Gimbal Ring (Inclined)
-    const ringGeo1 = new THREE.RingGeometry(5.8, 5.86, 72);
-    const ringMat1 = new THREE.MeshBasicMaterial({
-      color: new THREE.Color('#ff1a40'),
-      side: THREE.DoubleSide,
-      transparent: true,
-      opacity: 0.42,
-      blending: THREE.AdditiveBlending,
-    });
-    const ringMesh1 = new THREE.Mesh(ringGeo1, ringMat1);
-    ringMesh1.rotation.x = Math.PI * 0.38;
-    ringMesh1.rotation.y = Math.PI * 0.15;
-    ringGroup.add(ringMesh1);
+      // Primary Gimbal Ring
+      const ringGeo1 = new THREE.RingGeometry(5.8, 5.86, 60);
+      const ringMat1 = new THREE.MeshBasicMaterial({
+        color: new THREE.Color('#ff1a40'),
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.42,
+        blending: THREE.AdditiveBlending,
+      });
+      const ringMesh1 = new THREE.Mesh(ringGeo1, ringMat1);
+      ringMesh1.rotation.x = Math.PI * 0.38;
+      ringMesh1.rotation.y = Math.PI * 0.15;
+      ringGroup.add(ringMesh1);
 
-    // Secondary Gimbal Ring (Opposite incline)
-    const ringGeo2 = new THREE.RingGeometry(6.6, 6.65, 72);
-    const ringMat2 = new THREE.MeshBasicMaterial({
-      color: new THREE.Color('#ff2a5f'),
-      side: THREE.DoubleSide,
-      transparent: true,
-      opacity: 0.28,
-      blending: THREE.AdditiveBlending,
-    });
-    const ringMesh2 = new THREE.Mesh(ringGeo2, ringMat2);
-    ringMesh2.rotation.x = -Math.PI * 0.32;
-    ringMesh2.rotation.z = Math.PI * 0.22;
-    ringGroup.add(ringMesh2);
+      // Secondary Gimbal Ring
+      const ringGeo2 = new THREE.RingGeometry(6.6, 6.65, 60);
+      const ringMat2 = new THREE.MeshBasicMaterial({
+        color: new THREE.Color('#ff2a5f'),
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.28,
+        blending: THREE.AdditiveBlending,
+      });
+      const ringMesh2 = new THREE.Mesh(ringGeo2, ringMat2);
+      ringMesh2.rotation.x = -Math.PI * 0.32;
+      ringMesh2.rotation.z = Math.PI * 0.22;
+      ringGroup.add(ringMesh2);
+    }
 
-    // Orbiting Spark Nodes on Rings
-    const orbitNodesGeo = new THREE.BufferGeometry();
-    const orbitNodePos = new Float32Array(12 * 3);
-    orbitNodesGeo.setAttribute('position', new THREE.BufferAttribute(orbitNodePos, 3));
-    const orbitNodesMat = new THREE.PointsMaterial({
-      color: new THREE.Color('#ffffff'),
-      size: 0.16,
-      map: glowTexture,
-      transparent: true,
-      blending: THREE.AdditiveBlending,
-    });
-    const orbitNodes = new THREE.Points(orbitNodesGeo, orbitNodesMat);
-    ringGroup.add(orbitNodes);
-
-    // 6. Floating Neural Energy Dust Particles
-    const sparkCount = 80;
+    // 6. Floating Neural Energy Dust Particles (Reduced on mobile)
+    const sparkCount = isMobileDevice ? 16 : 80;
     const sparkPositions = new Float32Array(sparkCount * 3);
     const sparkVelocities: { x: number; y: number; z: number; speed: number; phase: number }[] = [];
 
@@ -498,9 +676,21 @@ export default function GwenVirtualFace({ onPromptSelect }: GwenVirtualFaceProps
     let clock = new THREE.Clock();
     let scanY = -5;
     let scanDirection = 1;
+    let lastRenderTime = 0;
+    const targetInterval = isMobileDevice ? 1000 / 30 : 1000 / 60; // 30 FPS on mobile
 
-    const animate = () => {
+    const animate = (timestamp: number) => {
       animId = requestAnimationFrame(animate);
+
+      // If offscreen or tab hidden, do not render WebGL
+      if (!isVisible || document.hidden) return;
+
+      if (isMobileDevice) {
+        const delta = timestamp - lastRenderTime;
+        if (delta < targetInterval) return;
+        lastRenderTime = timestamp - (delta % targetInterval);
+      }
+
       const elapsedTime = clock.getElapsedTime();
 
       // Smooth pointer interpolation
@@ -538,28 +728,15 @@ export default function GwenVirtualFace({ onPromptSelect }: GwenVirtualFaceProps
       avatarGroup.rotation.x = -mouse.y * 0.25 + idleTilt + dragRotation.x;
       avatarGroup.rotation.z = mouse.x * 0.06;
 
-      // Orbiting Gimbal Rings Dynamic Position & Scale
-      const isFaceMode = viewModeRef.current === 'face';
-      const targetRingPos = isFaceMode ? HEAD_TARGET : FULL_TARGET;
-      const targetRingScale = isFaceMode ? 0.42 : 1.0;
+      if (!isMobileDevice) {
+        // Orbiting Gimbal Rings Dynamic Position & Scale (desktop only)
+        const isFaceMode = viewModeRef.current === 'face';
+        const targetRingPos = isFaceMode ? HEAD_TARGET : FULL_TARGET;
+        const targetRingScale = isFaceMode ? 0.42 : 1.0;
 
-      ringGroup.position.lerp(targetRingPos, 0.08);
-      ringGroup.scale.lerp(new THREE.Vector3(targetRingScale, targetRingScale, targetRingScale), 0.08);
-
-      ringMesh1.rotation.z = elapsedTime * 0.25;
-      ringMesh2.rotation.y = -elapsedTime * 0.18;
-
-      // Update traveling nodes on orbital rings
-      const nodePositions = orbitNodesGeo.attributes.position.array as Float32Array;
-      for (let i = 0; i < 12; i++) {
-        const angle = (i / 12) * Math.PI * 2 + elapsedTime * 0.5;
-        const rad = i % 2 === 0 ? 5.83 : 6.62;
-        const tilt = i % 2 === 0 ? 0.38 : -0.32;
-        nodePositions[i * 3 + 0] = Math.cos(angle) * rad;
-        nodePositions[i * 3 + 1] = Math.sin(angle) * rad * Math.sin(tilt);
-        nodePositions[i * 3 + 2] = Math.sin(angle) * rad * Math.cos(tilt);
+        ringGroup.position.lerp(targetRingPos, 0.08);
+        ringGroup.scale.lerp(new THREE.Vector3(targetRingScale, targetRingScale, targetRingScale), 0.08);
       }
-      orbitNodesGeo.attributes.position.needsUpdate = true;
 
       // Update Ascending Neural Sparks
       const sparkPosArray = sparksGeo.attributes.position.array as Float32Array;
@@ -577,6 +754,7 @@ export default function GwenVirtualFace({ onPromptSelect }: GwenVirtualFaceProps
       sparksGeo.attributes.position.needsUpdate = true;
 
       // Camera Smooth Transition (Face Focus vs Full Body)
+      const isFaceMode = viewModeRef.current === 'face';
       const targetPos = isFaceMode ? HEAD_CAM_POS : FULL_CAM_POS;
       const targetLook = isFaceMode ? HEAD_TARGET : FULL_TARGET;
 
@@ -589,10 +767,11 @@ export default function GwenVirtualFace({ onPromptSelect }: GwenVirtualFaceProps
       renderer.render(scene, camera);
     };
 
-    animate();
+    animId = requestAnimationFrame(animate);
 
     return () => {
       cancelAnimationFrame(animId);
+      observer?.disconnect();
       window.removeEventListener('resize', resize);
       window.removeEventListener('mousemove', onPointerMove);
       window.removeEventListener('mouseup', onMouseUp);
@@ -605,7 +784,7 @@ export default function GwenVirtualFace({ onPromptSelect }: GwenVirtualFaceProps
     };
   }, []);
 
-  // 2D Audio Waveform Visualizer Canvas
+  // 2D Audio Waveform Visualizer Canvas (Optimized for Mobile)
   useEffect(() => {
     const waveCanvas = waveformCanvasRef.current;
     if (!waveCanvas) return;
@@ -613,7 +792,8 @@ export default function GwenVirtualFace({ onPromptSelect }: GwenVirtualFaceProps
     if (!ctx) return;
 
     let animId: number;
-    let dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const isMobileWave = window.innerWidth < 768 || ('ontouchstart' in window);
+    let dpr = isMobileWave ? 1 : Math.min(window.devicePixelRatio || 1, 2);
 
     const resizeWave = () => {
       if (!waveCanvas) return;
@@ -624,8 +804,18 @@ export default function GwenVirtualFace({ onPromptSelect }: GwenVirtualFaceProps
     window.addEventListener('resize', resizeWave);
 
     let waveTime = 0;
+    let lastWaveFrame = 0;
+    const waveInterval = isMobileWave ? 1000 / 30 : 1000 / 60;
 
-    const renderWave = () => {
+    const renderWave = (timestamp: number) => {
+      animId = requestAnimationFrame(renderWave);
+
+      if (document.hidden) return;
+
+      const delta = timestamp - lastWaveFrame;
+      if (delta < waveInterval) return;
+      lastWaveFrame = timestamp - (delta % waveInterval);
+
       waveTime += 0.035;
       const w = waveCanvas.width;
       const h = waveCanvas.height;
@@ -635,9 +825,10 @@ export default function GwenVirtualFace({ onPromptSelect }: GwenVirtualFaceProps
       const amp = isSpeaking ? 16 * dpr : 3.5 * dpr;
 
       ctx.beginPath();
-      for (let x = 0; x <= w; x += 3 * dpr) {
+      const step = isMobileWave ? 5 * dpr : 3 * dpr;
+      for (let x = 0; x <= w; x += step) {
         const normX = (x / w) * 2 - 1;
-        const envelope = Math.exp(-normX * normX * 3.5); // Gaussian bell curve
+        const envelope = Math.exp(-normX * normX * 3.5);
         const freq1 = Math.sin(waveTime * (isSpeaking ? 12 : 3) + normX * 8);
         const freq2 = Math.cos(waveTime * (isSpeaking ? 8 : 2) + normX * 14);
         const y = midY + (freq1 * 0.65 + freq2 * 0.35) * amp * envelope;
@@ -647,16 +838,18 @@ export default function GwenVirtualFace({ onPromptSelect }: GwenVirtualFaceProps
       }
 
       ctx.strokeStyle = isSpeaking ? '#ffffff' : '#ff1a40';
-      ctx.shadowColor = '#ff1a40';
-      ctx.shadowBlur = isSpeaking ? 16 * dpr : 8 * dpr;
+      if (!isMobileWave) {
+        ctx.shadowColor = '#ff1a40';
+        ctx.shadowBlur = isSpeaking ? 16 * dpr : 8 * dpr;
+      }
       ctx.lineWidth = (isSpeaking ? 2.5 : 1.4) * dpr;
       ctx.stroke();
-      ctx.shadowBlur = 0;
-
-      animId = requestAnimationFrame(renderWave);
+      if (!isMobileWave) {
+        ctx.shadowBlur = 0;
+      }
     };
 
-    renderWave();
+    animId = requestAnimationFrame(renderWave);
 
     return () => {
       cancelAnimationFrame(animId);
@@ -692,8 +885,46 @@ export default function GwenVirtualFace({ onPromptSelect }: GwenVirtualFaceProps
           </div>
         </div>
 
-        {/* Audio / Voice Controls */}
-        <div className="flex items-center gap-2">
+        {/* Audio / Voice Controls (Bilingual STT + TTS) */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Language Selector (Hindi / English / Auto) */}
+          <div className="flex items-center gap-1 bg-[#161925] border border-[#2a3045] rounded-xl p-1 text-xs">
+            <Languages className="w-3.5 h-3.5 text-[#ff1a40] ml-1" />
+            <select
+              value={selectedLanguage}
+              onChange={(e) => setSelectedLanguage(e.target.value as any)}
+              className="bg-transparent text-[#cbd5e1] font-mono text-[11px] outline-none cursor-pointer pr-1"
+            >
+              <option value="auto">Auto (Hinglish)</option>
+              <option value="hi-IN">Hindi (हिन्दी)</option>
+              <option value="en-IN">English (EN)</option>
+            </select>
+          </div>
+
+          {/* Microphone Live Voice Control Button */}
+          <button
+            onClick={toggleSpeechRecognition}
+            className={`px-3 py-1.5 rounded-xl border font-mono text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+              isListening
+                ? 'bg-[#ff1a40] border-[#ff1a40] text-white animate-pulse shadow-[0_0_20px_#ff1a40]'
+                : 'bg-[#161925] border-[#2a3045] hover:border-[#ff1a40]/50 text-[#cbd5e1]'
+            }`}
+            title={isListening ? 'Click to Stop Listening' : 'Speak to GWEN in Hindi or English'}
+          >
+            {isListening ? (
+              <>
+                <Mic className="w-4 h-4 text-white animate-spin" />
+                <span>Listening...</span>
+              </>
+            ) : (
+              <>
+                <MicOff className="w-4 h-4 text-[#ff1a40]" />
+                <span>Talk to GWEN</span>
+              </>
+            )}
+          </button>
+
+          {/* Mute Voice Synthesis Button */}
           <button
             onClick={() => {
               setSoundEnabled(!soundEnabled);
@@ -801,13 +1032,25 @@ export default function GwenVirtualFace({ onPromptSelect }: GwenVirtualFaceProps
               <canvas ref={waveformCanvasRef} className="w-full h-full block opacity-90" />
             </div>
 
-            {/* Click to Speak Tooltip */}
+            {/* Click / Voice Tooltip Badge */}
             <div
-              onClick={() => speakGreeting()}
-              className="absolute bottom-2.5 z-20 px-3 py-1 rounded-full bg-[#0d1017]/90 border border-[#ff1a40]/40 text-[10px] font-mono text-[#94a3b8] hover:text-white hover:border-[#ff1a40] transition-all flex items-center gap-1.5 shadow-lg cursor-pointer"
+              onClick={() => (isListening ? toggleSpeechRecognition() : toggleSpeechRecognition())}
+              className={`absolute bottom-2.5 z-20 px-3 py-1 rounded-full border text-[10px] font-mono transition-all flex items-center gap-1.5 shadow-lg cursor-pointer max-w-[90%] truncate ${
+                isListening
+                  ? 'bg-[#ff1a40]/20 border-[#ff1a40] text-white animate-pulse'
+                  : 'bg-[#0d1017]/90 border-[#ff1a40]/40 text-[#94a3b8] hover:text-[#ff1a40] hover:border-[#ff1a40]'
+              }`}
             >
-              <Sparkles className="w-3 h-3 text-[#ff1a40]" />
-              <span>{isSpeaking ? 'Speaking neural voice...' : 'Click face to talk'}</span>
+              <Sparkles className="w-3 h-3 text-[#ff1a40] shrink-0" />
+              <span className="truncate">
+                {isListening
+                  ? `Listening: "${liveTranscript || 'Speak now...'}"`
+                  : isProcessingQuery
+                  ? 'Processing spoken directive...'
+                  : isSpeaking
+                  ? 'GWEN Speaking...'
+                  : 'Click or tap Talk to GWEN'}
+              </span>
             </div>
           </div>
         </div>
